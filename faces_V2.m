@@ -2,7 +2,7 @@ clear; close all; clc;
 
 Fs = 90; % framerate needs to be higher 
 % home
-mypi=raspi('192.168.1.216','pi','password');
+mypi=raspi('IP','pi','password');
 cam = cameraboard(mypi,'Resolution','640x480','FrameRate',Fs,'Quality',50);
 end_sample=20; % set how many seconds you want to loop
 es = 20;
