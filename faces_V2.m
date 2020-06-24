@@ -1,17 +1,15 @@
 clear; close all; clc;
 
-Fs = 90; % framerate needs to be higher 
+Fs = 90; % framerate needs to be higher % 480p@90fps is the max fps the camera data sheet specifies
 % home
 mypi=raspi('IP','pi','password');
 cam = cameraboard(mypi,'Resolution','640x480','FrameRate',Fs,'Quality',50);
 end_sample=20; % set how many seconds you want to loop
 es = 20;
 roi = cell(Fs,1);
-
+i = 0;
 
 while true
-    
-    i = 0;
     i = i + 1;
     
     for i = i:(i+9)
