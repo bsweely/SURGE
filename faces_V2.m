@@ -2,12 +2,13 @@ clear; close all; clc;
 
 Fs = 30; % framerate needs to be higher % 480p@90fps is the max fps the camera data sheet specifies
 % home
-mypi=raspi('IP','pi','password');
+mypi=raspi('10.0.0.52','pi','password');
 cam = cameraboard(mypi,'Resolution','640x480','FrameRate',Fs,'Quality',50);
 end_sample=20; % set how many seconds you want to loop
 es = 20;
 roi = cell(Fs,1);
 i = 0;
+HR = [];
 
 while true
     i = i + 1;
@@ -73,31 +74,55 @@ while true
               pulse_sw(ii) = mean(psdx(ii-sw_size:ii));
         end
     end
-    
-    % This doesn't work for me
-    %{ 
-    % Bandpass Filter
-    [filter_out,d]=bandpass(pulse_sw(sw_size+1:end),[0.5 5],Fs);
-    y=filter_out(1:length(psdx)-sw_size);   
-    pulse_fft=abs(fft(y,length(y)));
-    figure(2)
-    pspectrum(pulse_fft, Fs) 
-    
+    %%%%%%%%%%%%%%%%%
     % peak detector
+    [peaks,locs] = findpeaks(10*log10(psdx), freq);
+    HR = horzcat(HR, 60.*locs);
     
-    % plot data
-    figure(3)
-    plot(1:end_sample, r_sliding_window_avg, 'r');
-    hold on
-    plot(1:end_sample, g_sliding_window, 'g');
-    plot(1:end_sample, b_sliding_window_avg, 'b');
-    hold off
-    figure(4)
-    plot(1:Fs, pulse_ica(1,:), 'r')
-    hold on
-    plot(1:Fs, pulse_ica(2,:), 'g')
-    plot(1:Fs, pulse_ica(3,:), 'b')
+    
+    %{
+% plot data
+figure(3)
+plot(1:end_sample, r_sliding_window_avg, 'r');
+hold on
+plot(1:end_sample, g_sliding_window, 'g');
+plot(1:end_sample, b_sliding_window_avg, 'b');
+hold off
+figure(4)
+plot(1:Fs, pulse_ica(1,:), 'r')
+hold on
+plot(1:Fs, pulse_ica(3,:), 'g')
+plot(1:Fs, pulse_ica(2,:), 'b')
+
+% Save Data
+save('data_Initials_video#.mat','r','b','g');
+
     %}
+    
+
+
+HR
+
+% Calculating how many heart rates are in the normal range in this dataset
+normHRCount = 0;
+for i = 1:length(HR)
+    if HR(i) < 100 && HR(i) > 60
+        normHRCount = normHRCount + 1;
+    end
+end
+
+normHRPercentage = 100*normHRCount./length(HR)
+
+figure(3)
+x = 1:length(HR);
+plot(x,HR);
+xlabel('HR Number in list');
+ylabel('HR');
+title('HR values')
+
+
+    %%%%%%%%%%%%%%%%%
+    
     
     % Loop Frames
     if i == 40
