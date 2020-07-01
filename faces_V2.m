@@ -75,8 +75,16 @@ while true
         end
     end
     %%%%%%%%%%%%%%%%%
+    
+    % Bandpass Filter
+    [filter_out,d]=bandpass(pulse_sw(sw_size+1:end),[0.5 5],Fs);
+    y=filter_out(1:length(psdx)-sw_size);
+    pulse_fft=abs(fft(y,length(y)));
+    figure(2)
+    pspectrum(pulse_fft,Fs) 
+    
     % peak detector
-    [peaks,locs] = findpeaks(10*log10(psdx), freq);
+    [peaks,locs] = findpeaks(10*log10(pulse_fft), freq);
     HR = horzcat(HR, 60.*locs);
     
     
