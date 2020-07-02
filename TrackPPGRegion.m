@@ -8,7 +8,7 @@
 % Paper: Kumar
 % Purpose: Tracking facial features and resetting the deformable facial
 % recognition model when the time interval for replacement is achieved
-% (say, every 20 seconds, or ecery 30 seconds). We should write the
+% (say, every 20 seconds, or every 30 seconds). We should write the
 % algorithm to reset based on a number of frames that pass or indicated
 % movement of the baby.
 % parameters: V(x,y,t) is the intensity of the images, according to the
