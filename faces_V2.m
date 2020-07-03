@@ -9,9 +9,13 @@ es = 20;
 roi = cell(Fs,1);
 
 tstart = tic;
-for i = 1:es
+for i = 1:es 
     img = snapshot(cam);
+    if mod(i,5) == 0  
     roi{i} = detectfaces_V2(img);
+    else
+        roi{i} = roi{i-1}; 
+    end 
     if roi{i}==1
         if i>1 
             roi{i} = roi{i-1};
