@@ -8,7 +8,7 @@ end_sample=20; % set how many seconds you want to loop
 es = 20;
 roi = cell(Fs,1);
 
-tic
+tstart = tic;
 for i = 1:es
     img = snapshot(cam);
     roi{i} = detectfaces_V2(img);
@@ -28,11 +28,11 @@ for i = 1:es
     b(i) = sum(sum(Blue_ROI));
     g(i) = sum(sum(Green_ROI));
 end
-t = tic; % stop timer
-time = toc(t); % time elapsed
-fps = es/time; % calculated frame rate
+time = toc(tstart); % display time in seconds 
+fps = es/time; % calculated frame rate 
 
-t = 1:1/fps:time; % time series
+t_series = linspace(0,time,es); % time series the same length as RGB signals
+
 
 % detrend
 r_detrend = detrend(r);
@@ -45,7 +45,7 @@ b_norm = normalize(b_detrend);
 g_norm = normalize(g_detrend);
 
 % ICA feature selection OR PCA
-X = [t; r_norm; b_norm; g_norm];
+X = [t_series; r_norm; b_norm; g_norm];
 [pulse_ica, W, T, mu] = kICA(X,3); % changed to 3 source, find best PPG signal
 
 % Power Spectral Density to select which component to use
