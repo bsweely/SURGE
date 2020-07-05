@@ -4,7 +4,7 @@
 //        ./app
 
 #include <iostream>
-#include <cstring>
+#include <string>
 
 /* TOFIX: causes seg fault
 struct image {
@@ -32,10 +32,10 @@ int main (int argc, char** argv) {
         totalframes = std::stoi(argv[4]);
     } 
     if (argc == 3) {
-        if (std::strcmp(argv[1], "-f") == 0) {
+        if (argv[1] == std::string("-f")) {
             framerate = std::stoi(argv[2]);
         }
-        if (std::strcmp(argv[1], "-t") == 0) {
+        if (argv[1] == std::string("-t")) {
             totalframes = std::stoi(argv[2]);
         }
     }
