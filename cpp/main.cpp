@@ -50,8 +50,6 @@ int main (int argc, char** argv) {
             // take and store image
             z++;
         }
-        // std::cerr << i << '\n';
-        // std::cerr << totalframes << '\n';
 
         for ( ; j < i; j++) {
             // get rgb signal channels
@@ -65,7 +63,6 @@ int main (int argc, char** argv) {
             j = 0;
         }
         
-        // std::cerr << z << '\n'; 
         if (z == totalframes) {
             break;
         }
