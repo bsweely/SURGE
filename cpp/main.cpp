@@ -26,7 +26,7 @@ int main (int argc, char** argv) {
     int z = 0;
 
     // Code:
-    // Set framerate if given
+    // Set framerate and/or total frames to capture if given
     if (argc == 5) {
         framerate = std::stoi(argv[2]);
         totalframes = std::stoi(argv[4]);
