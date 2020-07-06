@@ -6,24 +6,25 @@
 #include <iostream>
 #include <string>
 
-/* TOFIX: causes seg fault
-struct image {
-    static const int x = 640, y = 480;
-    int r[x*y], g[x*y], b[(x*y)];
-};
-*/
+#include "opencv2/core.hpp"
+#include "opencv2/highgui.hpp" 
+#include "opencv2/imgproc.hpp" 
+#include "opencv2/objdetect.hpp"
+#include "opencv2/videoio.hpp"
 
 
 int main (int argc, char** argv) {
     
     // Variables:
+    cv::VideoCapture capture;
     int framerate = 30;
+    int numframes = 0;
     int totalframes = 600;
-    // image img[60];
 
     int i = 0;
     int j = 0;
-    int z = 0;
+
+    
 
     // Code:
     // Set framerate and/or total frames to capture if given
@@ -39,6 +40,7 @@ int main (int argc, char** argv) {
             totalframes = std::stoi(argv[2]);
         }
     }
+    
     std::cout << "Frames to capture: " << totalframes << '\n';
     std::cout << "Frame rate       : " << framerate << '\n';
         
@@ -48,7 +50,7 @@ int main (int argc, char** argv) {
     while (true) {
         for ( ; i < (j+10); i++) {
             // take and store image
-            z++;
+            numframes++;
         }
 
         for ( ; j < i; j++) {
@@ -63,11 +65,12 @@ int main (int argc, char** argv) {
             j = 0;
         }
         
-        if (z == totalframes) {
+        if (numframes == totalframes) {
             break;
         }
         
     }
+
     return 0;
 
 }
