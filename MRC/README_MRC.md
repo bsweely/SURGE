@@ -24,3 +24,20 @@ V(x,y,t) is the intensity of each pixel in an image file.
 2. Programming the program to recognize faces every 5 images or so significantly sped up the Programming.
 
 3. We will have to migrate to either Python or C++ because MATLAB cannot run on the Raspberry Pi's processor.
+
+## Steps to Implement MRC algorithm
+
+Studies show that the MRC algorithm is one of the current best algorithms for face detection and PPG calculation. These are the steps that we took to implement the MRC algorithm into our
+
+# Initializing HR detection for average by gathering 200 initial frames
+
+- detect face (vision.CascadeObjectDetector)
+- choose largest face in the image (rPPG extractFaceFromVideo.m, detectFace.m)
+- get array of intensities for the whole frame in terms of V(x,y,t)
+- divide array into 20x20 pixel arrays and put those into another array ()
+- bandpass filter between 0.5 and 5 Hz (in old faces code)
+
+
+
+
+```
