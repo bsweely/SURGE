@@ -2,19 +2,30 @@ clear; close all; clc;
 
 Fs = 30; % framerate needs to be higher % 480p@90fps is the max fps the camera data sheet specifies
 % home
-mypi=raspi('IP Address','pi','password');
+
+mypi=raspi('10.0.0.52','pi','password');
 cam = cameraboard(mypi,'Resolution','640x480','FrameRate',Fs,'Quality',50);
+
 end_sample=20; % set how many seconds you want to loop
 es = 20;
 roi = cell(Fs,1);
 i = 0;
+
+%{
+% Test image files
+path = strcat("C:\Users\jrsho\Desktop\myFacePictures");
+files = dir(fullfile(path,"*"));
+length_files = length(files)
+%}
+
 time = [];
 HR = [];
 while true
     i = i + 1;
-    length(HR) % used for debugging
-    for i = i:(i+9)
+    % length(HR) % used for debugging
+    for i = i:(i+es-1)
         tic
+        % img = imread(strcat(path,'\',files(i+2).name)); % I have +2 because that is when pictures start
         img = snapshot(cam);
         roi{i} = detectfaces_V2(img);
         if roi{i}==1
@@ -89,7 +100,7 @@ while true
     pspectrum(pulse_fft,Fs) 
 
     % peak detector
-    [peaks,locs] = findpeaks(10*log10(pulse_fft), t); % [peaks,locs] = findpeaks(10*log10(pulse_fft), freq);
+    [peaks,locs] = findpeaks(10*log10(pulse_fft), t); % [peaks,locs] = findpeaks(10*log10(pulse_fft), freq); % old code
 
     % Evaluating the heart rates
     HR = horzcat(HR, 60.*locs);
@@ -132,7 +143,7 @@ while true
     
     
     % Loop Frames
-    if i == 40
+    if i == length(files)
         i = 0;
     end
 end

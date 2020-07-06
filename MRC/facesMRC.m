@@ -1,6 +1,23 @@
 % This is a MATLAB file that would have the entire MRC algorithm and faces
 % code in it.
 
+% Variables
+
+% V(x,y,t) is the intensity of a certain color (R,G,B,C,O,G) that is
+% measures in one frame of a video. (x,y) is a 2D grid of the RGB or COG
+% color values in each (x,y) pixel of the image at time t
+
+% Intensity V(x,y,t) can be decomposed into two attributes: the intensity of the
+% illumination I(x,y,t) and the reflectance of the surface skin R(x,y,t)
+
+% Intensity of illumination I(x,y,t) refers to the intensity of ambient light
+% falling on the face
+
+% Reflectance R(x,y,t) is the light reflected from the skin
+
+% Intensity of illumination is assumed to be constant in the room of
+% testing, so changes in I are proportional to changes in R
+
 % Getting the working PPG signals
 
 % code for getting an image

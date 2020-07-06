@@ -2,17 +2,14 @@ clear; close all; clc;
 
 Fs = 15; % framerate needs to be higher 
 % home
-mypi=raspi('IP Address','pi','password');
+mypi=raspi('IP_Address','pi','password');
 cam = cameraboard(mypi,'Resolution','640x480','FrameRate',Fs,'Quality',50);
 end_sample=20; % set how many seconds you want to loop
 es = 20;
 roi = cell(Fs,1);
-time = zeros(1,es);
-HR = [];
 
-% tic
+tstart = tic;
 for i = 1:es
-    tic
     img = snapshot(cam);
     roi{i} = detectfaces_V2(img);
     if roi{i}==1
@@ -30,15 +27,12 @@ for i = 1:es
     r(i) = sum(sum(Red_ROI)); % intensity -> PPG
     b(i) = sum(sum(Blue_ROI));
     g(i) = sum(sum(Green_ROI));
-    t = tic;
-    time(i) = toc(t);
 end
-%t = tic; % stop timer
-%time = toc(t); % time elapsed
-%fps = es/time % calculated frame rate
+time = toc(tstart); % display time in seconds 
+fps = es/time; % calculated frame rate 
 
-% t = 1:1/fps:es; % time series
-length(time)
+t_series = linspace(0,time,es); % time series the same length as RGB signals
+
 
 % detrend
 r_detrend = detrend(r);
@@ -51,7 +45,7 @@ b_norm = normalize(b_detrend);
 g_norm = normalize(g_detrend);
 
 % ICA feature selection OR PCA
-X = [time; r_norm; b_norm; g_norm];
+X = [t_series; r_norm; b_norm; g_norm];
 [pulse_ica, W, T, mu] = kICA(X,3); % changed to 3 source, find best PPG signal
 
 % Power Spectral Density to select which component to use
@@ -92,15 +86,10 @@ figure(2)
 pspectrum(pulse_fft,Fs) 
 
 % peak detector
-[peaks,locs] = findpeaks(10*log10(pulse_fft), t); % [peaks,locs] = findpeaks(10*log10(pulse_fft), freq);
-
-% Evaluating the heart rates
+[peaks,locs] = findpeaks(10*log10(pulse_fft), freq);
 HR = horzcat(HR, 60.*locs);
-HR;
-averageHR = mean(HR);
 
 % plot data
-%{
 figure(3)
 plot(1:end_sample, r_sliding_window_avg, 'r');
 hold on
@@ -112,7 +101,6 @@ plot(1:Fs, pulse_ica(1,:), 'r')
 hold on
 plot(1:Fs, pulse_ica(3,:), 'g')
 plot(1:Fs, pulse_ica(2,:), 'b')
-%}
 
 % Save Data
 save('data_Initials_video#.mat','r','b','g');
