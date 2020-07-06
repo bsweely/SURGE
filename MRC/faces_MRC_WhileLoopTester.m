@@ -9,8 +9,7 @@ cam = cameraboard(mypi,'Resolution','640x480','FrameRate',Fs,'Quality',50);
 end_sample=10; % set how many seconds you want to loop
 es = 20;
 roi = cell(Fs,1);
-i = 0;
-
+numOfInitialFrames = 200; % number of initial frames to acquire before moving average
 %{
 % Test image files
 path = strcat("C:\Users\jrsho\Desktop\myFacePictures");
@@ -21,14 +20,57 @@ length_files = length(files)
 timesPerFrame = [];
 totalTimes = [];
 HR = [];
+
+% getting initial 200 frames of data
+for k = 1:numOfInitialFrames + es
+    tic
+    % img = imread(strcat(path,'\',files(i+2).name)); % I have +2 because that is when pictures start
+    img = snapshot(cam);
+    if mod(k,5) == 0 || k == 1
+        roi{k} = detectfaces_V2(img);
+    else
+        roi{k} = roi{k-1}; 
+    end 
+    if roi{k}==1
+        if k>1 
+            roi{k} = roi{k-1};
+        else 
+            roi{k} = [250,150;300,250;250,250;300,150];
+        end
+    end
+    x = roi{k}(:,2);
+    y = roi{k}(:,1);
+    Red_ROI = img(min(x):max(x),min(y):max(y),1); 
+    Green_ROI = img(min(x):max(x),min(y):max(y),2);
+    Blue_ROI = img(min(x):max(x),min(y):max(y),3);
+    r(k) = sum(sum(Red_ROI)); % intensity -> PPG
+    g(k) = sum(sum(Green_ROI));
+    b(k) = sum(sum(Blue_ROI));
+    t = tic;
+    timesPerFrame(k) = toc(t);
+
+    if k == 1
+        totalTimes(k) = timesPerFrame(k);
+    else
+        totalTimes(k) = timesPerFrame(k) + totalTimes(k-1);
+    end
+end
+
+i = numOfInitialFrames; % starting at one index in front of the initial frames for the new data
 while true
     i = i + 1;
-    % length(HR) % used for debugging
+    length_HR = length(HR) % used for debugging
+    
+    % Getting new PPG data
     for i = i:(i+es-1)
         tic
         % img = imread(strcat(path,'\',files(i+2).name)); % I have +2 because that is when pictures start
         img = snapshot(cam);
-        roi{i} = detectfaces_V2(img);
+        if mod(i,5) == 0 || i == 1
+            roi{i} = detectfaces_V2(img);
+        else
+            roi{i} = roi{i-1}; 
+        end 
         if roi{i}==1
             if i>1 
                 roi{i} = roi{i-1};
@@ -53,7 +95,17 @@ while true
             totalTimes(i) = timesPerFrame(i) + totalTimes(i-1);
         end
     end
-    % t_series = linspace(0,toc(t),es); % time series the same length as RGB signals
+    
+    % resizing data to have newest 200 frames of data by taking out the
+    % first 20 frames, which reduces these arrays of 220 elements to 200
+    % elements
+    if length(r) > numOfInitialFrames
+        r = reduceToLastNIndices(r, numOfInitialFrames);
+        g = reduceToLastNIndices(g, numOfInitialFrames);
+        b = reduceToLastNIndices(b, numOfInitialFrames);
+        timesPerFrame = reduceToLastNIndices(timesPerFrame, numOfInitialFrames);
+        totalTimes = reduceToLastNIndices(totalTimes, numOfInitialFrames);
+    end
     
     % detrend
     r_detrend = detrend(r);
@@ -66,7 +118,7 @@ while true
     g_norm = normalize(g_detrend);
 
     % ICA feature selection OR PCA
-    X = [timesPerFrame; r_norm; b_norm; g_norm]; % should it be timesPerFrame or totalTime?
+    X = [timesPerFrame; r_norm; b_norm; g_norm]; 
     [pulse_ica, W, T, mu] = kICA(X,3); % changed to 3 source, find best PPG signal
 
     % Power Spectral Density to select which component to use
@@ -125,8 +177,10 @@ while true
 
     % Evaluating the heart rates
     HR = horzcat(HR, 60.*locs);
-    HR;
-    averageHR = mean(HR);
+    
+    % resizing HR to current HR frequencies
+    HR = reduceToLastNIndices(HR,200);
+    averageHR = mean(HR)
     
     %{
     % plot data
@@ -163,9 +217,11 @@ while true
     %%%%%%%%%%%%%%%%%
     
     
-    % Loop Frames
-    if i == es;
-        i = 0;
+    % Loop Frames % if the number of initial frames + es is the limit to
+    % the frames that one processes at once, then this if statement will be
+    % no longer needed
+    if i == numOfInitialFrames + es;
+        i = numOfInitialFrames;
     end
 end
     
