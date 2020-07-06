@@ -1,5 +1,13 @@
 clear; close all; clc;
 
+% Current Bugs/ undesirable features
+
+% 1. The totalTimes array occasionally gathers times that are not the
+% totals of the ones before them (every 20 elements, but not each
+% iteration), so this is why I have a code snippet that skips the current
+% iteration of heart rate values and tries again when this happens. 
+
+
 Fs = 30; % framerate needs to be higher % 480p@90fps is the max fps the camera data sheet specifies
 % home
 
@@ -164,8 +172,11 @@ while true
     
     
     % Loop Frames
-    if i == es;
+    loopFrames = 40
+    if i == loopFrames;
         i = 0;
+        timesPerFrames = [];
+        tota
     end
 end
     
