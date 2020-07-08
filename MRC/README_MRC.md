@@ -17,6 +17,8 @@ V(x,y,t) is the intensity of each pixel in an image file.
 
 3. We must programmatically recognize regions that have large light intensity changes, for this implies that there is movement, so these regions should be left out of the ROI.
 
+4. I will not initially program face tracking, for the babies will not be moving their faces a lot in the NICU, so this will reduce computational load considerably.
+
 # Important Findings
 
 1. The MATLAB built-in variable vision.CascadeObjectDetector cannot accurately detect either individual eye or the mouth, for it assumes that all of those orifices are all the right eye, left eye, and mouth. The nose is also not easily recognized.
@@ -36,7 +38,7 @@ Studies show that the MRC algorithm is one of the current best algorithms for fa
 - get array of intensities for the whole frame in terms of V(x,y,t)
 - divide array into 20x20 pixel arrays and put those into another array ()
 - bandpass filter between 0.5 and 5 Hz (in old faces code)
-
+- ICA find the best of the 20x20 pixel arrays in the code for feature selection (in RunMe.m in rPPG repo)
 
 
 

@@ -6,10 +6,10 @@ Fs = 30; % framerate needs to be higher % 480p@90fps is the max fps the camera d
 mypi=raspi('10.0.0.52','pi','password');
 cam = cameraboard(mypi,'Resolution','640x480','FrameRate',Fs,'Quality',50);
 
-end_sample=10; % set how many seconds you want to loop
+end_sample=20; % set how many seconds you want to loop
 es = 20;
 roi = cell(Fs,1);
-numOfInitialFrames = 200; % number of initial frames to acquire before moving average
+numOfInitialFrames = 10; % number of initial frames to acquire before moving average % set to 10 to debug faster
 %{
 % Test image files
 path = strcat("C:\Users\jrsho\Desktop\myFacePictures");
@@ -20,6 +20,7 @@ length_files = length(files)
 timesPerFrame = [];
 totalTimes = [];
 HR = [];
+pixelRegions = [];
 
 % getting initial 200 frames of data
 for k = 1:numOfInitialFrames + es
@@ -38,14 +39,31 @@ for k = 1:numOfInitialFrames + es
             roi{k} = [250,150;300,250;250,250;300,150];
         end
     end
+    
+    % Separating roi into 20x20 pixel points
     x = roi{k}(:,2);
     y = roi{k}(:,1);
-    Red_ROI = img(min(x):max(x),min(y):max(y),1); 
-    Green_ROI = img(min(x):max(x),min(y):max(y),2);
-    Blue_ROI = img(min(x):max(x),min(y):max(y),3);
-    r(k) = sum(sum(Red_ROI)); % intensity -> PPG
-    g(k) = sum(sum(Green_ROI));
-    b(k) = sum(sum(Blue_ROI));
+    
+    xDist = max(x) - min(x);
+    yDist = max(y) - min(y);
+    
+    
+    yPixelBoxBounds = min(y):20:max(y) % The y coordinates of the 20x20 pixels
+    xPixelBoxBounds = min(x):20:max(x) % The x coordinates of the 20x20 pixels
+    numOfPixelBoxes = (length(yPixelBoxBounds) - 1)*(length(xPixelBoxBounds) - 1) % number of pixel boxes
+    
+    % initializing the pixelBoxes array with the pixel boxes
+    for col = 1:length(yPixelBoxBounds) - 1
+        for row = 1:length(xPixelBoxBounds) - 1
+            
+            Red_ROI = img(xPixelBoxBounds(row):xPixelBoxBounds(row)+20,yPixelBoxBounds(col):yPixelBoxBounds(col)+20,1); 
+            Green_ROI = img(xPixelBoxBounds(row):xPixelBoxBounds(row)+20,yPixelBoxBounds(col):yPixelBoxBounds(col)+20,2); 
+            Blue_ROI = img(xPixelBoxBounds(row):xPixelBoxBounds(row)+20,yPixelBoxBounds(col):yPixelBoxBounds(col)+20,3); 
+            r(k) = sum(sum(Red_ROI)); % intensity -> PPG
+            g(k) = sum(sum(Green_ROI));
+            b(k) = sum(sum(Blue_ROI));
+        end
+    end
     t = tic;
     timesPerFrame(k) = toc(t);
 
@@ -57,9 +75,9 @@ for k = 1:numOfInitialFrames + es
 end
 
 i = numOfInitialFrames; % starting at one index in front of the initial frames for the new data
-while true
+for g = 1:50
     i = i + 1;
-    length_HR = length(HR) % used for debugging
+    length_HR = length(HR); % used for debugging
     
     % Getting new PPG data
     for i = i:(i+es-1)
@@ -78,17 +96,37 @@ while true
                 roi{i} = [250,150;300,250;250,250;300,150];
             end
         end
+
+        % Separating roi into 20x20 pixel points
         x = roi{i}(:,2);
         y = roi{i}(:,1);
-        Red_ROI = img(min(x):max(x),min(y):max(y),1); 
-        Green_ROI = img(min(x):max(x),min(y):max(y),2);
-        Blue_ROI = img(min(x):max(x),min(y):max(y),3);
-        r(i) = sum(sum(Red_ROI)); % intensity -> PPG
-        g(i) = sum(sum(Green_ROI));
-        b(i) = sum(sum(Blue_ROI));
+
+        xDist = max(x) - min(x);
+        yDist = max(y) - min(y);
+
+
+        yPixelBoxBounds = min(y):20:max(y) % The y coordinates of the 20x20 pixels
+        xPixelBoxBounds = min(x):20:max(x) % The x coordinates of the 20x20 pixels
+        numOfPixelBoxes = (length(yPixelBoxBounds) - 1)*(length(xPixelBoxBounds) - 1) % number of pixel boxes
+
+        % initializing the pixelBoxes array with the pixel boxes
+        for col = 1:length(yPixelBoxBounds) - 1
+            for row = 1:length(xPixelBoxBounds) - 1
+
+                Red_ROI = img(xPixelBoxBounds(row):xPixelBoxBounds(row)+20,yPixelBoxBounds(col):yPixelBoxBounds(col)+20,1); 
+                Green_ROI = img(xPixelBoxBounds(row):xPixelBoxBounds(row)+20,yPixelBoxBounds(col):yPixelBoxBounds(col)+20,2); 
+                Blue_ROI = img(xPixelBoxBounds(row):xPixelBoxBounds(row)+20,yPixelBoxBounds(col):yPixelBoxBounds(col)+20,3); 
+                r(i) = sum(sum(Red_ROI)); % intensity -> PPG
+                g(i) = sum(sum(Green_ROI));
+                b(i) = sum(sum(Blue_ROI));
+            end
+        end
+        
+        
+        
         t = tic;
         timesPerFrame(i) = toc(t);
-        
+
         if i == 1
             totalTimes(i) = timesPerFrame(i);
         else
@@ -174,9 +212,12 @@ while true
 
     % peak detector
     [peaks,locs] = findpeaks(10*log10(pulse_fft), totalTimes(1:length(pulse_fft))); % [peaks,locs] = findpeaks(10*log10(pulse_fft), freq); % old code
+    
+    % getting frequencies that match with the peaks
+    [freqPeaks, HRFreqs] = findpeaks(10*log10(psdx), freq);
 
     % Evaluating the heart rates
-    HR = horzcat(HR, 60.*locs);
+    HR = horzcat(HR, 60*HRFreqs);
     
     % resizing HR to current HR frequencies
     HR = reduceToLastNIndices(HR,200);
