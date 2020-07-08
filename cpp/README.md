@@ -1,4 +1,4 @@
-# C++ PPG Code
+# C++ rPPG Code
 
 ## Usage
 
