@@ -35,7 +35,7 @@ for k = 1:numOfInitialFrames
     % img = imread(strcat(path,'\',files(k+2).name)); % I have +2 because that is when pictures start
     % img = snapshot(cam);
     img = imread(faceImages(k).name);
-    if mod(k,10) == 0 || k == 1
+    if mod(k,5) == 0 || k == 1
         roi{k} = detectfaces_V2(img);
     else
         roi{k} = roi{k-1}; 
@@ -109,7 +109,7 @@ for numOfIterations = 1:1
         % img = imread(strcat(path,'\',files(i+2).name)); % I have +2 because that is when pictures start
         % img = snapshot(cam);
         img = imread(faceImages(i).name);
-        if mod(i,10) == 0 || i == 1
+        if mod(i,5) == 0 || i == 1
             roi{i} = detectfaces_V2(img);
         else
             roi{i} = roi{i-1}; 
