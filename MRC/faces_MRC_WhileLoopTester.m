@@ -9,34 +9,33 @@ cam = cameraboard(mypi,'Resolution','640x480','FrameRate',Fs,'Quality',50);
 %}
 
 end_sample=20; % set how many seconds you want to loop
-es = 20;
+es = 100;
 roi = cell(Fs,1);
-numOfInitialFrames = 10; % number of initial frames to acquire before moving average % set to 10 to debug faster
+numOfInitialFrames = 1; % number of initial frames to acquire before moving average % set to 10 to debug faster
 r = zeros(1,numOfInitialFrames + es);
 g = zeros(1,numOfInitialFrames + es);
 b = zeros(1,numOfInitialFrames + es);
-% Test image files
-%{
-path = strcat("C:\Users\jrsho\Desktop\myFacePictures");
-files = dir(fullfile(path,"*"));
-length_files = length(files)
-%}
 
 % Importing faceImages mat file to use as standardized data
 load('faceImages.mat');
 
 timesPerFrame = zeros(1,numOfInitialFrames + es);
 totalTimes = zeros(1,numOfInitialFrames + es);
-HR = zeros(1,numOfInitialFrames + es);
+HR = [];
 pixelRegions = [];
 
+% arrays for analzing stats on the most promising regions
+modeRIntensities = [];
+modeBIntensities = [];
+modeGIntensities = [];
+
 % getting initial 200 frames of data
-for k = 1:numOfInitialFrames + es
+for k = 1:numOfInitialFrames
     tic
     % img = imread(strcat(path,'\',files(k+2).name)); % I have +2 because that is when pictures start
     % img = snapshot(cam);
     img = imread(faceImages(k).name);
-    if mod(k,5) == 0 || k == 1
+    if mod(k,10) == 0 || k == 1
         roi{k} = detectfaces_V2(img);
     else
         roi{k} = roi{k-1}; 
@@ -83,6 +82,12 @@ for k = 1:numOfInitialFrames + es
     r(k) = max(rIntensities);
     b(k) = max(bIntensities);
     g(k) = max(gIntensities);
+    
+    % collecting stats on the regions with most intensity
+    modeRIntensities = horzcat(modeRIntensities, find(rIntensities == max(rIntensities)));
+    modeBIntensities = horzcat(modeBIntensities, find(bIntensities == max(bIntensities)));
+    modeGIntensities = horzcat(modeGIntensities, find(gIntensities == max(gIntensities)));
+    
     t = tic;
     timesPerFrame(k) = toc(t);
 
@@ -94,7 +99,7 @@ for k = 1:numOfInitialFrames + es
 end
 
 i = numOfInitialFrames; % starting at one index in front of the initial frames for the new data
-for numOfIterations = 1:100
+for numOfIterations = 1:1 
     i = i + 1;
     length_HR = length(HR); % used for debugging
     
@@ -104,7 +109,7 @@ for numOfIterations = 1:100
         % img = imread(strcat(path,'\',files(i+2).name)); % I have +2 because that is when pictures start
         % img = snapshot(cam);
         img = imread(faceImages(i).name);
-        if mod(i,5) == 0 || i == 1
+        if mod(i,10) == 0 || i == 1
             roi{i} = detectfaces_V2(img);
         else
             roi{i} = roi{i-1}; 
@@ -129,24 +134,31 @@ for numOfIterations = 1:100
         xPixelBoxBounds = min(x):20:max(x); % The x coordinates of the 20x20 pixels
         numOfPixelBoxes = (length(yPixelBoxBounds) - 1)*(length(xPixelBoxBounds) - 1); % number of pixel boxes
         
-            index = 0;
-            % initializing the pixelBoxes array with the pixel boxes
-            for col = 1:length(yPixelBoxBounds) - 1
-                for row = 1:length(xPixelBoxBounds) - 1
-                    index = index + 1;
-                    Red_ROI = img(xPixelBoxBounds(row):xPixelBoxBounds(row)+20,yPixelBoxBounds(col):yPixelBoxBounds(col)+20,1); 
-                    Green_ROI = img(xPixelBoxBounds(row):xPixelBoxBounds(row)+20,yPixelBoxBounds(col):yPixelBoxBounds(col)+20,2); 
-                    Blue_ROI = img(xPixelBoxBounds(row):xPixelBoxBounds(row)+20,yPixelBoxBounds(col):yPixelBoxBounds(col)+20,3); 
-                    rIntensities(index) = sum(sum(Red_ROI)); % intensity -> PPG
-                    gIntensities(index) = sum(sum(Green_ROI));
-                    bIntensities(index) = sum(sum(Blue_ROI));
-                end
+        index = 0;
+        % initializing the pixelBoxes array with the pixel boxes
+        for col = 1:length(yPixelBoxBounds) - 1
+            for row = 1:length(xPixelBoxBounds) - 1
+                index = index + 1;
+                Red_ROI = img(xPixelBoxBounds(row):xPixelBoxBounds(row)+20,yPixelBoxBounds(col):yPixelBoxBounds(col)+20,1); 
+                Green_ROI = img(xPixelBoxBounds(row):xPixelBoxBounds(row)+20,yPixelBoxBounds(col):yPixelBoxBounds(col)+20,2); 
+                Blue_ROI = img(xPixelBoxBounds(row):xPixelBoxBounds(row)+20,yPixelBoxBounds(col):yPixelBoxBounds(col)+20,3); 
+                rIntensities(index) = sum(sum(Red_ROI)); % intensity -> PPG
+                gIntensities(index) = sum(sum(Green_ROI));
+                bIntensities(index) = sum(sum(Blue_ROI));
             end
+        end
 
-            % collecting the strongest intensites for the R,G,B data
-            r(i) = max(rIntensities);
-            b(i) = max(bIntensities);
-            g(i) = max(gIntensities);
+        % collecting the strongest intensites for the R,G,B data
+        r(i) = max(rIntensities);
+        b(i) = max(bIntensities);
+        g(i) = max(gIntensities);
+        
+        % collecting the statistics on which regions of the face are 
+        % the most intense to see if there is a trend
+        
+        modeRIntensities = horzcat(modeRIntensities, find(rIntensities == max(rIntensities)));
+        modeBIntensities = horzcat(modeBIntensities, find(bIntensities == max(bIntensities)));
+        modeGIntensities = horzcat(modeGIntensities, find(gIntensities == max(gIntensities)));
         
         t = tic;
         timesPerFrame(i) = toc(t);
@@ -180,8 +192,11 @@ for numOfIterations = 1:100
     g_norm = normalize(g_detrend);
 
     % ICA feature selection OR PCA
-    X = [totalTimes; r_norm; b_norm; g_norm]; % X = [timesPerFrame; r_norm; b_norm; g_norm]; 
-    [pulse_ica, W, T, mu] = kICA(X,3); % changed to 3 source, find best PPG signal
+    % X = [totalTimes; r_norm; b_norm; g_norm];
+    % X = [totalTimes; timesPerFrame; r_norm; b_norm; g_norm]; 
+    % X = [totalTimes; timesPerFrame; r_detrend; b_detrend; g_detrend]; 
+    X = [totalTimes; timesPerFrame; r; b; g]; 
+    [pulse_ica, W, T, mu] = kICA(X,5); % changed to 3 source, find best PPG signal
 
     % Power Spectral Density to select which component to use
     t = 0:1/Fs:1-1/Fs;
@@ -200,8 +215,9 @@ for numOfIterations = 1:100
     ylabel('Power/Frequency (dB/Hz)')
 
     % Best component selection
-    best_comp = 3; % green channel
-    Xb = X; % Xb = X([1 3],:);
+    best_comp = 4; % green channel
+    Xb = X([1 4],:);
+    % Xb = X;
 
     % Moving Average
     sw_size = 5; % window size
@@ -230,7 +246,7 @@ for numOfIterations = 1:100
     % peak detector
     [peaks,locs] = findpeaks(10*log10(power_fft), freq);
 
-    HR = locs(1,1) * 60 ;
+    HR = horzcat(HR, locs(1,1) * 60);
 
     % plot data
     %{
@@ -254,7 +270,7 @@ for numOfIterations = 1:100
     % Loop Frames % if the number of initial frames + es is the limit to
     % the frames that one processes at once, then this if statement will be
     % no longer needed
-    if i == numOfInitialFrames + es;
+    if i == numOfInitialFrames + es
         i = numOfInitialFrames;
         % resizing data to have newest 200 frames of data by taking out the
         % first 20 frames, which reduces these arrays of 220 elements to 200
@@ -268,6 +284,10 @@ for numOfIterations = 1:100
         
     end
 end
+
+modeRIntensities;
+modeBIntensities;
+modeGIntensities;
     
 % Save Data
 % save('data_Initials_video#.mat','r','g','b');
