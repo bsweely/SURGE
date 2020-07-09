@@ -3,30 +3,39 @@ clear; close all; clc;
 Fs = 30; % framerate needs to be higher % 480p@90fps is the max fps the camera data sheet specifies
 % home
 
-mypi=raspi('10.0.0.52','pi','password');
+%{
+mypi=raspi('IP Address','pi','password');
 cam = cameraboard(mypi,'Resolution','640x480','FrameRate',Fs,'Quality',50);
+%}
 
 end_sample=20; % set how many seconds you want to loop
 es = 20;
 roi = cell(Fs,1);
 numOfInitialFrames = 10; % number of initial frames to acquire before moving average % set to 10 to debug faster
-%{
+r = zeros(1,numOfInitialFrames + es);
+g = zeros(1,numOfInitialFrames + es);
+b = zeros(1,numOfInitialFrames + es);
 % Test image files
+%{
 path = strcat("C:\Users\jrsho\Desktop\myFacePictures");
 files = dir(fullfile(path,"*"));
 length_files = length(files)
 %}
 
-timesPerFrame = [];
-totalTimes = [];
-HR = [];
+% Importing faceImages mat file to use as standardized data
+load('faceImages.mat');
+
+timesPerFrame = zeros(1,numOfInitialFrames + es);
+totalTimes = zeros(1,numOfInitialFrames + es);
+HR = zeros(1,numOfInitialFrames + es);
 pixelRegions = [];
 
 % getting initial 200 frames of data
 for k = 1:numOfInitialFrames + es
     tic
-    % img = imread(strcat(path,'\',files(i+2).name)); % I have +2 because that is when pictures start
-    img = snapshot(cam);
+    % img = imread(strcat(path,'\',files(k+2).name)); % I have +2 because that is when pictures start
+    % img = snapshot(cam);
+    img = imread(faceImages(k).name);
     if mod(k,5) == 0 || k == 1
         roi{k} = detectfaces_V2(img);
     else
@@ -48,22 +57,32 @@ for k = 1:numOfInitialFrames + es
     yDist = max(y) - min(y);
     
     
-    yPixelBoxBounds = min(y):20:max(y) % The y coordinates of the 20x20 pixels
-    xPixelBoxBounds = min(x):20:max(x) % The x coordinates of the 20x20 pixels
-    numOfPixelBoxes = (length(yPixelBoxBounds) - 1)*(length(xPixelBoxBounds) - 1) % number of pixel boxes
+    yPixelBoxBounds = min(y):20:max(y); % The y coordinates of the 20x20 pixels
+    xPixelBoxBounds = min(x):20:max(x); % The x coordinates of the 20x20 pixels
+    numOfPixelBoxes = (length(yPixelBoxBounds) - 1)*(length(xPixelBoxBounds) - 1); % number of pixel boxes
     
+    % initializing the pixelBoxes array with the pixel boxes
+    index = 0;
+    rIntensities = zeros(1,numOfPixelBoxes);
+    gIntensities = zeros(1,numOfPixelBoxes);
+    bIntensities = zeros(1,numOfPixelBoxes);
     % initializing the pixelBoxes array with the pixel boxes
     for col = 1:length(yPixelBoxBounds) - 1
         for row = 1:length(xPixelBoxBounds) - 1
-            
+            index = index + 1;
             Red_ROI = img(xPixelBoxBounds(row):xPixelBoxBounds(row)+20,yPixelBoxBounds(col):yPixelBoxBounds(col)+20,1); 
             Green_ROI = img(xPixelBoxBounds(row):xPixelBoxBounds(row)+20,yPixelBoxBounds(col):yPixelBoxBounds(col)+20,2); 
             Blue_ROI = img(xPixelBoxBounds(row):xPixelBoxBounds(row)+20,yPixelBoxBounds(col):yPixelBoxBounds(col)+20,3); 
-            r(k) = sum(sum(Red_ROI)); % intensity -> PPG
-            g(k) = sum(sum(Green_ROI));
-            b(k) = sum(sum(Blue_ROI));
+            rIntensities(index) = sum(sum(Red_ROI)); % intensity -> PPG
+            gIntensities(index) = sum(sum(Green_ROI));
+            bIntensities(index) = sum(sum(Blue_ROI));
         end
     end
+
+    % collecting the strongest intensites for the R,G,B data
+    r(k) = max(rIntensities);
+    b(k) = max(bIntensities);
+    g(k) = max(gIntensities);
     t = tic;
     timesPerFrame(k) = toc(t);
 
@@ -75,7 +94,7 @@ for k = 1:numOfInitialFrames + es
 end
 
 i = numOfInitialFrames; % starting at one index in front of the initial frames for the new data
-for g = 1:50
+for numOfIterations = 1:100
     i = i + 1;
     length_HR = length(HR); % used for debugging
     
@@ -83,7 +102,8 @@ for g = 1:50
     for i = i:(i+es-1)
         tic
         % img = imread(strcat(path,'\',files(i+2).name)); % I have +2 because that is when pictures start
-        img = snapshot(cam);
+        % img = snapshot(cam);
+        img = imread(faceImages(i).name);
         if mod(i,5) == 0 || i == 1
             roi{i} = detectfaces_V2(img);
         else
@@ -105,24 +125,28 @@ for g = 1:50
         yDist = max(y) - min(y);
 
 
-        yPixelBoxBounds = min(y):20:max(y) % The y coordinates of the 20x20 pixels
-        xPixelBoxBounds = min(x):20:max(x) % The x coordinates of the 20x20 pixels
-        numOfPixelBoxes = (length(yPixelBoxBounds) - 1)*(length(xPixelBoxBounds) - 1) % number of pixel boxes
-
-        % initializing the pixelBoxes array with the pixel boxes
-        for col = 1:length(yPixelBoxBounds) - 1
-            for row = 1:length(xPixelBoxBounds) - 1
-
-                Red_ROI = img(xPixelBoxBounds(row):xPixelBoxBounds(row)+20,yPixelBoxBounds(col):yPixelBoxBounds(col)+20,1); 
-                Green_ROI = img(xPixelBoxBounds(row):xPixelBoxBounds(row)+20,yPixelBoxBounds(col):yPixelBoxBounds(col)+20,2); 
-                Blue_ROI = img(xPixelBoxBounds(row):xPixelBoxBounds(row)+20,yPixelBoxBounds(col):yPixelBoxBounds(col)+20,3); 
-                r(i) = sum(sum(Red_ROI)); % intensity -> PPG
-                g(i) = sum(sum(Green_ROI));
-                b(i) = sum(sum(Blue_ROI));
+        yPixelBoxBounds = min(y):20:max(y); % The y coordinates of the 20x20 pixels
+        xPixelBoxBounds = min(x):20:max(x); % The x coordinates of the 20x20 pixels
+        numOfPixelBoxes = (length(yPixelBoxBounds) - 1)*(length(xPixelBoxBounds) - 1); % number of pixel boxes
+        
+            index = 0;
+            % initializing the pixelBoxes array with the pixel boxes
+            for col = 1:length(yPixelBoxBounds) - 1
+                for row = 1:length(xPixelBoxBounds) - 1
+                    index = index + 1;
+                    Red_ROI = img(xPixelBoxBounds(row):xPixelBoxBounds(row)+20,yPixelBoxBounds(col):yPixelBoxBounds(col)+20,1); 
+                    Green_ROI = img(xPixelBoxBounds(row):xPixelBoxBounds(row)+20,yPixelBoxBounds(col):yPixelBoxBounds(col)+20,2); 
+                    Blue_ROI = img(xPixelBoxBounds(row):xPixelBoxBounds(row)+20,yPixelBoxBounds(col):yPixelBoxBounds(col)+20,3); 
+                    rIntensities(index) = sum(sum(Red_ROI)); % intensity -> PPG
+                    gIntensities(index) = sum(sum(Green_ROI));
+                    bIntensities(index) = sum(sum(Blue_ROI));
+                end
             end
-        end
-        
-        
+
+            % collecting the strongest intensites for the R,G,B data
+            r(i) = max(rIntensities);
+            b(i) = max(bIntensities);
+            g(i) = max(gIntensities);
         
         t = tic;
         timesPerFrame(i) = toc(t);
@@ -134,16 +158,16 @@ for g = 1:50
         end
     end
     
-    % resizing data to have newest 200 frames of data by taking out the
-    % first 20 frames, which reduces these arrays of 220 elements to 200
-    % elements
-    if length(r) > numOfInitialFrames
-        r = reduceToLastNIndices(r, numOfInitialFrames);
-        g = reduceToLastNIndices(g, numOfInitialFrames);
-        b = reduceToLastNIndices(b, numOfInitialFrames);
-        timesPerFrame = reduceToLastNIndices(timesPerFrame, numOfInitialFrames);
-        totalTimes = reduceToLastNIndices(totalTimes, numOfInitialFrames);
-    end
+%     % resizing data to have newest 200 frames of data by taking out the
+%     % first 20 frames, which reduces these arrays of 220 elements to 200
+%     % elements
+%     if length(r) > numOfInitialFrames
+%         r = reduceToLastNIndices(r, numOfInitialFrames);
+%         g = reduceToLastNIndices(g, numOfInitialFrames);
+%         b = reduceToLastNIndices(b, numOfInitialFrames);
+%         timesPerFrame = reduceToLastNIndices(timesPerFrame, numOfInitialFrames);
+%         totalTimes = reduceToLastNIndices(totalTimes, numOfInitialFrames);
+%     end
     
     % detrend
     r_detrend = detrend(r);
@@ -156,7 +180,7 @@ for g = 1:50
     g_norm = normalize(g_detrend);
 
     % ICA feature selection OR PCA
-    X = [timesPerFrame; r_norm; b_norm; g_norm]; 
+    X = [totalTimes; r_norm; b_norm; g_norm]; % X = [timesPerFrame; r_norm; b_norm; g_norm]; 
     [pulse_ica, W, T, mu] = kICA(X,3); % changed to 3 source, find best PPG signal
 
     % Power Spectral Density to select which component to use
@@ -177,7 +201,7 @@ for g = 1:50
 
     % Best component selection
     best_comp = 3; % green channel
-    Xb = X([1 3],:);
+    Xb = X; % Xb = X([1 3],:);
 
     % Moving Average
     sw_size = 5; % window size
@@ -191,70 +215,39 @@ for g = 1:50
 
     % Bandpass Filter
     [filter_out,d]=bandpass(pulse_sw(sw_size+1:end),[0.5 5],Fs);
-    y=filter_out(1:length(Xb)-sw_size);
-    pulse_fft=abs(fft(y,length(y)));
+    Y=filter_out(1:length(Xb)-sw_size);
+    pulse_fft = fft(Y) ; 
+    P2 = abs(pulse_fft/N); 
+    power_fft = P2(1:N/2+1) ; 
+    power_fft(2:end-1) = 2*power_fft(2:end-1); 
+
     figure(2)
-    pspectrum(pulse_fft,Fs) 
-    
-    % checking to see if the totalTimes is in ascending order. If not, skip
-    % this iteration and try again
-    issortedErrorCounter = 0;
-    if issorted(totalTimes) == 0
-        issortedErrorCounter = issortedErrorCounter + 1;
-        disp('Non-ascending totalTimes array');
-        totalTimes
-        timesPerFrame
-        if i == 40
-            i = 0;
-        end
-        continue
-    end
+    pspectrum(power_fft,Fs) 
+
+    figure (3) 
+    plot (freq, 10*log10(power_fft)) 
 
     % peak detector
-    [peaks,locs] = findpeaks(10*log10(pulse_fft), totalTimes(1:length(pulse_fft))); % [peaks,locs] = findpeaks(10*log10(pulse_fft), freq); % old code
-    
-    % getting frequencies that match with the peaks
-    [freqPeaks, HRFreqs] = findpeaks(10*log10(psdx), freq);
+    [peaks,locs] = findpeaks(10*log10(power_fft), freq);
 
-    % Evaluating the heart rates
-    HR = horzcat(HR, 60*HRFreqs);
-    
-    % resizing HR to current HR frequencies
-    HR = reduceToLastNIndices(HR,200);
-    averageHR = mean(HR)
-    
-    %{
+    HR = locs(1,1) * 60 ;
+
     % plot data
-    figure(3)
+    %{
+    figure(4)
     plot(1:end_sample, r_sliding_window_avg, 'r');
     hold on
     plot(1:end_sample, g_sliding_window, 'g');
     plot(1:end_sample, b_sliding_window_avg, 'b');
     hold off
-    figure(4)
+    figure(5)
     plot(1:Fs, pulse_ica(1,:), 'r')
     hold on
     plot(1:Fs, pulse_ica(3,:), 'g')
     plot(1:Fs, pulse_ica(2,:), 'b')
-    % Save Data
-    save('data_Initials_video#.mat','r','b','g');
     %}
     
-    HR;
-    % Calculating how many heart rates are in the normal range in this dataset
-    normHRCount = 0;
-    for j = 1:length(HR)
-        if HR(j) < 100 && HR(j) > 60
-            normHRCount = normHRCount + 1;
-        end
-    end
-    normHRPercentage = 100*normHRCount./length(HR)
-    figure(3)
-    x = 1:length(HR);
-    plot(x,HR);
-    xlabel('HR Number in list');
-    ylabel('HR');
-    title('HR values')
+    HR
     %%%%%%%%%%%%%%%%%
     
     
@@ -263,6 +256,16 @@ for g = 1:50
     % no longer needed
     if i == numOfInitialFrames + es;
         i = numOfInitialFrames;
+        % resizing data to have newest 200 frames of data by taking out the
+        % first 20 frames, which reduces these arrays of 220 elements to 200
+        % elements
+
+        r = reduceToLastNIndices(r, numOfInitialFrames);
+        g = reduceToLastNIndices(g, numOfInitialFrames);
+        b = reduceToLastNIndices(b, numOfInitialFrames);
+        timesPerFrame = reduceToLastNIndices(timesPerFrame, numOfInitialFrames);
+        totalTimes = reduceToLastNIndices(totalTimes, numOfInitialFrames);
+        
     end
 end
     
