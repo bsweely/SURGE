@@ -1,4 +1,4 @@
-clear; close all; clc;
+clear; close all; % clc;
 
 Fs = 30; % framerate needs to be higher % 480p@90fps is the max fps the camera data sheet specifies
 % home
@@ -11,13 +11,13 @@ cam = cameraboard(mypi,'Resolution','640x480','FrameRate',Fs,'Quality',50);
 end_sample=20; % set how many seconds you want to loop
 es = 100;
 roi = cell(Fs,1);
-numOfInitialFrames = 1; % number of initial frames to acquire before moving average % set to 10 to debug faster
+numOfInitialFrames = 10; % number of initial frames to acquire before moving average % set to 10 to debug faster
 r = zeros(1,numOfInitialFrames + es);
 g = zeros(1,numOfInitialFrames + es);
 b = zeros(1,numOfInitialFrames + es);
 
 % Importing faceImages mat file to use as standardized data
-load('faceImages.mat');
+load('Jeremy_data.mat');
 
 timesPerFrame = zeros(1,numOfInitialFrames + es);
 totalTimes = zeros(1,numOfInitialFrames + es);
@@ -29,14 +29,16 @@ modeRIntensities = [];
 modeBIntensities = [];
 modeGIntensities = [];
 
+% faceImages = dir(fullfile(pwd,'*.jpg'));
+
 % getting initial 200 frames of data
 for k = 1:numOfInitialFrames
     tic
     % img = imread(strcat(path,'\',files(k+2).name)); % I have +2 because that is when pictures start
     % img = snapshot(cam);
-    img = imread(faceImages(k).name);
+    img = images(k).snapshot;
     if mod(k,5) == 0 || k == 1
-        roi{k} = detectfaces_V2(img);
+        roi{k} = detectbothcheeks(img);
     else
         roi{k} = roi{k-1}; 
     end 
@@ -108,9 +110,9 @@ for numOfIterations = 1:1
         tic
         % img = imread(strcat(path,'\',files(i+2).name)); % I have +2 because that is when pictures start
         % img = snapshot(cam);
-        img = imread(faceImages(i).name);
+        img = images(i).snapshot;
         if mod(i,5) == 0 || i == 1
-            roi{i} = detectfaces_V2(img);
+            roi{i} = detectbothcheeks(img);
         else
             roi{i} = roi{i-1}; 
         end 
@@ -195,13 +197,13 @@ for numOfIterations = 1:1
     % X = [totalTimes; r_norm; b_norm; g_norm];
     % X = [totalTimes; timesPerFrame; r_norm; b_norm; g_norm]; 
     % X = [totalTimes; timesPerFrame; r_detrend; b_detrend; g_detrend]; 
-    X = [totalTimes; timesPerFrame; r; b; g]; 
-    [pulse_ica, W, T, mu] = kICA(X,5); % changed to 3 source, find best PPG signal
+    X = [totalTimes; timesPerFrame; r_norm; b_norm; g_norm]; 
+    % [pulse_ica, W, T, mu] = kICA(X,5); % changed to 3 source, find best PPG signal
 
     % Power Spectral Density to select which component to use
     t = 0:1/Fs:1-1/Fs;
-    N = length(pulse_ica);
-    xdft = fft(pulse_ica);
+    N = length(X(5,:));
+    xdft = fft(X(5,:));
     xdft = xdft(1:N/2+1);
     psdx = (1/(Fs*N)) * abs(xdft).^2;
     psdx(2:end-1) = 2*psdx(2:end-1);
@@ -215,11 +217,12 @@ for numOfIterations = 1:1
     ylabel('Power/Frequency (dB/Hz)')
 
     % Best component selection
-    best_comp = 4; % green channel
-    Xb = X([1 4],:);
+    best_comp = 5; % green channel
+    Xb = X(5,:); % Xb = X([1 5],:); % took out totalTimes b/c no current face detection
     % Xb = X;
 
     % Moving Average
+    %{
     sw_size = 5; % window size
     pulse_sw = zeros(length(Xb),1);
 
@@ -228,10 +231,11 @@ for numOfIterations = 1:1
               pulse_sw(ii) = mean(Xb(ii-sw_size:ii));
         end
     end
+    %}
 
     % Bandpass Filter
-    [filter_out,d]=bandpass(pulse_sw(sw_size+1:end),[0.5 5],Fs);
-    Y=filter_out(1:length(Xb)-sw_size);
+    [filter_out,d]=bandpass(Xb,[0.5 5],Fs);
+    Y=filter_out(1:length(Xb));
     pulse_fft = fft(Y) ; 
     P2 = abs(pulse_fft/N); 
     power_fft = P2(1:N/2+1) ; 
@@ -242,11 +246,16 @@ for numOfIterations = 1:1
 
     figure (3) 
     plot (freq, 10*log10(power_fft)) 
+    
+    % figure(4)
+    % graph y versus totalTimes for paper
 
     % peak detector
-    [peaks,locs] = findpeaks(10*log10(power_fft), freq);
-
-    HR = horzcat(HR, locs(1,1) * 60);
+    % [peaks,locs] = findpeaks(10*log10(power_fft), freq);
+    
+    [maxPeak, index] = max(10*log10(power_fft)); % getting max peak and index
+    HR = horzcat(HR, freq(index)*60);
+    % HR = horzcat(HR, locs(1,[1 2 3]) * 60);
 
     % plot data
     %{

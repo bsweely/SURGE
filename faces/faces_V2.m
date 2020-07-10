@@ -1,4 +1,4 @@
-clear -except IP_Address; close all; clc;
+clear; close all; clc;
 
 Fs = 15; % framerate needs to be higher 
 % home
@@ -9,9 +9,13 @@ es = 20;
 roi = cell(Fs,1);
 
 tstart = tic;
-for i = 1:es
+for i = 1:es 
     img = snapshot(cam);
-    roi{i} = detectfaces_V2(img);
+    if mod(i,5) == 0  || i == 1
+        roi{i} = detectfaces_V2(img);
+    else
+        roi{i} = roi{i-1}; 
+    end 
     if roi{i}==1
         if i>1 
             roi{i} = roi{i-1};
@@ -80,27 +84,37 @@ end
 
 % Bandpass Filter
 [filter_out,d]=bandpass(pulse_sw(sw_size+1:end),[0.5 5],Fs);
-y=filter_out(1:length(Xb)-sw_size);
-pulse_fft=abs(fft(y,length(y)));
+Y=filter_out(1:length(Xb)-sw_size);
+pulse_fft = fft(Y) ; 
+P2 = abs(pulse_fft/N); 
+power_fft = P2(1:N/2+1) ; 
+power_fft(2:end-1) = 2*power_fft(2:end-1); 
+
 figure(2)
-pspectrum(pulse_fft,Fs) 
+pspectrum(power_fft,Fs) 
+
+figure (3) 
+plot (freq, 10*log10(power_fft)) 
 
 % peak detector
-[peaks,locs] = findpeaks(10*log10(pulse_fft), freq);
-HR = horzcat(HR, 60.*locs);
+[peaks,locs] = findpeaks(10*log10(power_fft), freq);
+
+HR = locs(1,1) * 60
 
 % plot data
-figure(3)
+%{
+figure(4)
 plot(1:end_sample, r_sliding_window_avg, 'r');
 hold on
 plot(1:end_sample, g_sliding_window, 'g');
 plot(1:end_sample, b_sliding_window_avg, 'b');
 hold off
-figure(4)
+figure(5)
 plot(1:Fs, pulse_ica(1,:), 'r')
 hold on
 plot(1:Fs, pulse_ica(3,:), 'g')
 plot(1:Fs, pulse_ica(2,:), 'b')
+%}
 
 % Save Data
 save('data_Initials_video#.mat','r','b','g');

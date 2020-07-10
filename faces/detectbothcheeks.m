@@ -1,6 +1,8 @@
 % Detecting the eyes and nose to make the ROI
 function roi = detectbothcheeks(img)
 quitSignal = 0;
+
+% Implement Python code in NICU.py for cheek and ofrehead detection
 while quitSignal == 0
     noseDetector = vision.CascadeObjectDetector('Nose');
     eyesDetector = vision.CascadeObjectDetector('EyePairBig');
