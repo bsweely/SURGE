@@ -3,10 +3,10 @@ clear; close all; % clc;
 Fs = 30; % framerate needs to be higher % 480p@90fps is the max fps the camera data sheet specifies
 % home
 
-%{
-mypi=raspi('IP Address','pi','password');
+
+mypi=raspi('10.0.0.52','pi','password');
 cam = cameraboard(mypi,'Resolution','640x480','FrameRate',Fs,'Quality',50);
-%}
+
 
 end_sample=20; % set how many seconds you want to loop
 es = 100;
@@ -15,9 +15,6 @@ numOfInitialFrames = 10; % number of initial frames to acquire before moving ave
 r = zeros(1,numOfInitialFrames + es);
 g = zeros(1,numOfInitialFrames + es);
 b = zeros(1,numOfInitialFrames + es);
-
-% Importing faceImages mat file to use as standardized data
-load('Jeremy_data.mat');
 
 timesPerFrame = zeros(1,numOfInitialFrames + es);
 totalTimes = zeros(1,numOfInitialFrames + es);
@@ -34,9 +31,7 @@ modeGIntensities = [];
 % getting initial 200 frames of data
 for k = 1:numOfInitialFrames
     tic
-    % img = imread(strcat(path,'\',files(k+2).name)); % I have +2 because that is when pictures start
-    % img = snapshot(cam);
-    img = images(k).snapshot;
+    img = snapshot(cam);
     if mod(k,5) == 0 || k == 1
         roi{k} = detectbothcheeks(img);
     else
@@ -109,8 +104,8 @@ for numOfIterations = 1:1
     for i = i:(i+es-1)
         tic
         % img = imread(strcat(path,'\',files(i+2).name)); % I have +2 because that is when pictures start
-        % img = snapshot(cam);
-        img = images(i).snapshot;
+        img = snapshot(cam);
+        % img = images(i).snapshot;
         if mod(i,5) == 0 || i == 1
             roi{i} = detectbothcheeks(img);
         else
@@ -232,9 +227,25 @@ for numOfIterations = 1:1
         end
     end
     %}
+    
+    %{
+    Notes for Future:
+    1. after two weeks, interpolate data after normalizing data and before PCA
+    2. People used ICA, and these sources were used after applying data
+        - research fastICA algorithm
+        - If given three sources, it will make 3 features, and with PSD,
+        find the highese peak with each feature, and whichever has the
+        highest peak is used for the rest of the algorithm
+    %}
+    
+    
+    % graph pulse_sw variable against time to make sure that it makes sense
+    
+    % graph Xb against time to see overlay of both - include this in the
+    % paper to demonstrate moving average
 
     % Bandpass Filter
-    [filter_out,d]=bandpass(Xb,[0.5 5],Fs);
+    [filter_out,d]=bandpass(Xb,[0.8 3],Fs); % [filter_out,d]=bandpass(Xb,[0.5 5],Fs);
     Y=filter_out(1:length(Xb));
     pulse_fft = fft(Y) ; 
     P2 = abs(pulse_fft/N); 
@@ -254,6 +265,8 @@ for numOfIterations = 1:1
     % [peaks,locs] = findpeaks(10*log10(power_fft), freq);
     
     [maxPeak, index] = max(10*log10(power_fft)); % getting max peak and index
+    [peaks, locs] = findpeaks(10*log10(power_fft), freq); % getting peaks for analysis
+    HR_found = 60*locs
     HR = horzcat(HR, freq(index)*60);
     % HR = horzcat(HR, locs(1,[1 2 3]) * 60);
 
