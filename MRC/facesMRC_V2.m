@@ -33,7 +33,7 @@ for k = 1:numOfInitialFrames
     tic
     img = snapshot(cam);
     if mod(k,5) == 0 || k == 1
-        roi{k} = detectbothcheeks(img);
+        roi{k} = detectfaces_V2(img);
     else
         roi{k} = roi{k-1}; 
     end 
@@ -107,7 +107,7 @@ for numOfIterations = 1:1
         img = snapshot(cam);
         % img = images(i).snapshot;
         if mod(i,5) == 0 || i == 1
-            roi{i} = detectbothcheeks(img);
+            roi{i} = detectfaces_V2(img);
         else
             roi{i} = roi{i-1}; 
         end 

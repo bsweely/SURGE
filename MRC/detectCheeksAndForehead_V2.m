@@ -26,7 +26,7 @@ if ~isempty(bboxes)
     topOfFH = round(min(y) + faceHeight*0.75); % approximately the height of top of forehead
 
     roiForeheadX = [min(x); min(x); max(x); max(x)];
-    roiForeheadY = [bottomOfFH; topOfFH; bottonOfFH; topOfFH];
+    roiForeheadY = [bottomOfFH; topOfFH; bottomOfFH; topOfFH];
     roiForehead = [roiForeheadX roiForeheadY];
 
     % isolating cheeks
@@ -34,7 +34,7 @@ if ~isempty(bboxes)
     faceWidth = max(x) - min(x);
     faceHeight = max(y) - min(y);
 
-    leftCheekX = [min(x); min(x); min(x) + faceWidth*0,4; min(x) + faceWidth*0.4];
+    leftCheekX = [min(x); min(x); min(x) + faceWidth*0.4; min(x) + faceWidth*0.4];
     leftCheekY = [min(y); min(y) + faceHeight*0.5; min(y); min(y) + faceHeight*0.5];
     roiLeftCheek = [leftCheekX leftCheekY];
 

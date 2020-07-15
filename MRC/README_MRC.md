@@ -5,10 +5,6 @@
 
 Maximum Ratio Combining (MRC) is an algorithm that detects a face, divides it up into 20 x 20 size arrays of pixels from the face, and uses ICA to find which 20x20 areas have the greatest intensities, which indicates a high Signal to Noise Ratio (SNR).
 
-# Variables
-
-V(x,y,t) is the intensity of each pixel in an image file.
-
 # Important Considerations
 
 1. Out of RGB, green light is best for using PPG, for the frequencies of the absorbance of oxygenated hemoglobin (Hboxy) and deoxygenated hemoglobin (Hbdeoxy) are within the green light range, to a great degree.
