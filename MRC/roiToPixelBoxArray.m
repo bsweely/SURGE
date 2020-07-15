@@ -24,13 +24,15 @@ y = roi(:,1);
 yPixelBoxBounds = min(y):20:max(y); % The y coordinates of the 20x20 pixels
 xPixelBoxBounds = min(x):20:max(x); % The x coordinates of the 20x20 pixels
 numOfPixelBoxes = (length(yPixelBoxBounds) - 1).*(length(xPixelBoxBounds) - 1) % number of pixel boxes
-% pixelBoxArray = zeros(length(yPixelBoxBounds), length(xPixelBoxBounds));
+
+pixelBoxArray(numOfPixelBoxes) = struct()
+
 
 index = 0;
 % initializing the pixelBox objects
 for col = 1:length(yPixelBoxBounds)
     for row = 1:length(xPixelBoxBounds)
-        index = index + 1;
+        index = index + 1
         
         Red_ROI = img(xPixelBoxBounds(row):xPixelBoxBounds(row)+20,yPixelBoxBounds(col):yPixelBoxBounds(col)+20,1); 
         Green_ROI = img(xPixelBoxBounds(row):xPixelBoxBounds(row)+20,yPixelBoxBounds(col):yPixelBoxBounds(col)+20,2); 
@@ -47,9 +49,14 @@ for col = 1:length(yPixelBoxBounds)
             (xPixelBoxBounds(row)+20) (yPixelBoxBounds(col)+20)];
         
         % concatenating the current pixelboxInstance to the pixel box array
-        pixelBoxArray(index) = pixelBoxInstance
+        pixelBoxArray(index).pixelBoxInstance = pixelBoxInstance
         pixelBoxInstance
     end
 end
-index
+index;
 end
+
+
+
+
+

@@ -1,9 +1,9 @@
 function bestPixelRegions = getBestPixelRegions(pixelBoxArrays, Fs, totalTimes, timesPerFrame, bandpassFilter, error, numBestBoxes, pulseRate)
 % This returns the cleanest Pixelboxes according to the goodness metric
 
-numOfEachPixelBox = length(pixelBoxArrays) % this is the number of instances of each pixel box as catalogged in pixelBoxArrays
+numOfEachPixelBox = length(pixelBoxArrays); % this is the number of instances of each pixel box as catalogged in pixelBoxArrays
 % pixelBoxArray(3)
-numOfDifferentPixelBoxes = length([pixelBoxArrays.pixelBoxArray])
+numOfDifferentPixelBoxes = length([pixelBoxArrays.pixelBoxArray]);
 
 %% Defining the pixelBox struct 
 % This holds the data for a set of pixelBoxInstances that correspond to a
@@ -18,17 +18,21 @@ pixelRegions(numOfDifferentPixelBoxes) = struct();
 
 %% Getting the pixelRegion information
 
-for i = 1:numOfEachPixelBox
-    numOfPixelBoxes = length(pixelBoxArrays(i).pixelBoxArray)
-    for j = 1:numOfPixelBoxes
-        pixelRegions(i).rIntensities(j) = pixelBoxArrays(i,1).pixelBoxArray(j).rIntensity;
-        pixelRegions(i).gIntensities(j) = pixelBoxArrays(i,1).pixelBoxArray(j).gIntensity;
-        pixelRegions(i).bIntensities(j) = pixelBoxArrays(i,1).pixelBoxArray(j).bIntensity;
+tt = pixelBoxArrays
+t = struct2table(pixelBoxArrays)
+e = struct2table(pixelBoxArrays(1,1))
+f = struct2table(pixelBoxArrays(1,1).pixelBoxArray)
+g = struct2table(pixelBoxArrays(1,1).pixelBoxArray(1))
+for i = 1:numOfDifferentPixelBoxes
+    numOfEachPixelBoxInstance = length(pixelBoxArrays
+    for j = 1:numOfEachPixelBox
+        i
+        j
+        pixelRegions(i).rIntensities(j) = pixelBoxArrays(j).pixelBoxArray(i).pixelBoxInstance.rIntensity;
+        pixelRegions(i).gIntensities(j) = pixelBoxArrays(j).pixelBoxArray(i).pixelBoxInstance.gIntensity;
+        pixelRegions(i).bIntensities(j) = pixelBoxArrays(j).pixelBoxArray(i).pixelBoxInstance.bIntensity;
     end
 end
-
-
-i
     
     clear i;
 numOfDifferentPixelBoxes % here for debugging
@@ -43,13 +47,13 @@ for i = 1:numOfDifferentPixelBoxes
     timesLength = length(totalTimes)
     totalTimes;
     
-    pixelRegions(i).rois = pixelBoxArrays(1).pixelBoxArray(i).roiCoords;
+    pixelRegions(i).rois = pixelBoxArrays(1).pixelBoxArray(i).pixelBoxInstance.roiCoords;
     
     p = pixelRegions(i).rIntensities
     
     X = [totalTimes(1:numOfPixelBoxes); 
         timesPerFrame(1:numOfPixelBoxes); 
-        pixelRegions(i).rIntensities(1:numOfPixelBoxes); 
+        pixelRegions(1,i).rIntensities(1:numOfPixelBoxes); 
         pixelRegions(i).gIntensities(1:numOfPixelBoxes); 
         pixelRegions(i).bIntensities(1:numOfPixelBoxes)]; 
 

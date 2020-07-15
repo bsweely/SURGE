@@ -4,7 +4,7 @@ Fs = 30; % framerate needs to be higher % 480p@90fps is the max fps the camera d
 % home
 
 
-mypi=raspi('IP ADDRESS','pi','password');
+mypi=raspi('10.0.0.52','pi','password');
 cam = cameraboard(mypi,'Resolution','640x480','FrameRate',Fs,'Quality',50);
 
 
@@ -96,7 +96,7 @@ for k = 1:numOfInitialFrames
 end
 
 i = numOfInitialFrames; % starting at one index in front of the initial frames for the new data
-for numOfIterations = 1:1 
+for numOfIterations = 1:10
     i = i + 1;
     length_HR = length(HR); % used for debugging
     
@@ -266,7 +266,7 @@ for numOfIterations = 1:1
     
     [maxPeak, index] = max(10*log10(power_fft)); % getting max peak and index
     [peaks, locs] = findpeaks(10*log10(power_fft), freq); % getting peaks for analysis
-    HR_found = 60*locs
+    HR_found = 60*locs*2
     HR = horzcat(HR, freq(index)*60);
     % HR = horzcat(HR, locs(1,[1 2 3]) * 60);
 

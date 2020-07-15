@@ -3,7 +3,7 @@ clear; close all; % clc;
 Fs = 30; % framerate needs to be higher % 480p@90fps is the max fps the camera data sheet specifies
 % home
 
-mypi=raspi('IP_ADDRESS','pi','password');
+mypi=raspi('10.0.0.52','pi','password');
 cam = cameraboard(mypi,'Resolution','640x480','FrameRate',Fs,'Quality',50);
 
 
