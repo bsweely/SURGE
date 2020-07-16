@@ -1,6 +1,6 @@
 clear; close all; clc;
 
-load('ariana_data_1_HR93.mat');
+load('Jeremy_data_2_98_.mat');
 es = length(images);
 Fs = 15;
 roi = cell(Fs,1);
@@ -131,5 +131,35 @@ plot (freq, data_power_fft,'b')
 % peak detector
 [maxPeak, index] = max(data_power_fft); % getting max peak and index
 HR_avg = freq(index) * 60 ; 
+
+% test peak detector
+[peaks, freqs] = findpeaks(data_power_fft, freq);
+
+HR = freqs.*60
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 

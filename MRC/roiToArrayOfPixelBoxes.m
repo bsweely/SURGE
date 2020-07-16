@@ -1,4 +1,4 @@
-function pixelBoxArray = roiToPixelBoxArray(roi, img)
+function frame = roiToArrayOfPixelBoxes(roi, img)
 % This function returns the coordinates for pixel boxes, the goodness
 % metrics, and other parts of choosing which regions to analyze with PPG
 
@@ -23,22 +23,22 @@ y = roi(:,1);
 
 yPixelBoxBounds = min(y):20:max(y); % The y coordinates of the 20x20 pixels
 xPixelBoxBounds = min(x):20:max(x); % The x coordinates of the 20x20 pixels
-numOfPixelBoxes = (length(yPixelBoxBounds) - 1).*(length(xPixelBoxBounds) - 1) % number of pixel boxes
+numOfPixelBoxes = (length(yPixelBoxBounds) - 1).*(length(xPixelBoxBounds) - 1); % number of pixel boxes
 
-pixelBoxArray(numOfPixelBoxes) = struct()
+frame(numOfPixelBoxes) = struct();
 
 
 index = 0;
 % initializing the pixelBox objects
 for col = 1:length(yPixelBoxBounds)
     for row = 1:length(xPixelBoxBounds)
-        index = index + 1
+        index = index + 1;
         
         Red_ROI = img(xPixelBoxBounds(row):xPixelBoxBounds(row)+20,yPixelBoxBounds(col):yPixelBoxBounds(col)+20,1); 
         Green_ROI = img(xPixelBoxBounds(row):xPixelBoxBounds(row)+20,yPixelBoxBounds(col):yPixelBoxBounds(col)+20,2); 
         Blue_ROI = img(xPixelBoxBounds(row):xPixelBoxBounds(row)+20,yPixelBoxBounds(col):yPixelBoxBounds(col)+20,3); 
         
-        pixelBoxInstance.rIntensity = sum(sum(Red_ROI)) % intensity -> PPG
+        pixelBoxInstance.rIntensity = sum(sum(Red_ROI)); % intensity -> PPG
         pixelBoxInstance.gIntensity = sum(sum(Green_ROI));
         pixelBoxInstance.bIntensity = sum(sum(Blue_ROI));
         
@@ -49,8 +49,8 @@ for col = 1:length(yPixelBoxBounds)
             (xPixelBoxBounds(row)+20) (yPixelBoxBounds(col)+20)];
         
         % concatenating the current pixelboxInstance to the pixel box array
-        pixelBoxArray(index).pixelBoxInstance = pixelBoxInstance
-        pixelBoxInstance
+        frame(index).pixelBoxInstance = pixelBoxInstance;
+        pixelBoxInstance;
     end
 end
 index;
