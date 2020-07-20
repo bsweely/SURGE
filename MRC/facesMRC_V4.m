@@ -8,7 +8,7 @@ mypi=raspi('IP Address','pi','password');
 cam = cameraboard(mypi,'Resolution','640x480','FrameRate',Fs,'Quality',50);
 %}
 
-load('Jeremy_data_10_98_.mat');
+load('Jeremy_data_1_HR67_.mat');
 
 end_sample=20; % set how many seconds you want to loop
 es = 50;
