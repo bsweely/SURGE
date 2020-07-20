@@ -1,15 +1,14 @@
 clear; close all; clc;
 
-load('Jeremy_data_1_98_.mat');
+load('ben_data_1_HR82_.mat');
 es = length(images);
-Fs = 15;
-roi = cell(Fs,1);
+Fs = fps;
+roi = cell(es,1);
 roiC = cell(es,1);
 r = zeros(es,1);
 g = zeros(es,1);
 b = zeros(es,1);
 
-tic
 for i = 1:es
     img = images(i);
     img = img.snapshot;
@@ -45,11 +44,6 @@ for i = 1:es
     g(i) = avg(2);
     b(i) = avg(3);
 end
-t = tic; % stop timer
-time = toc(t); % time elapsed
-fps = es/time; % calculated frame rate
-
-t = 1:1/fps:time; % time series
 
 % detrend
 % normalize
@@ -79,7 +73,7 @@ s1_power_fft(2:end-1) = 2*s1_power_fft(2:end-1);
 
 source2_fft = fft(ica_s2); 
 s2 = abs(source2_fft/N); 
-s2_power_fft = s2(1:N/2+1).^2; 
+s2_power_fft = s2(1:(N/2)+1).^2; 
 s2_power_fft(2:end-1) = 2*s2_power_fft(2:end-1); 
 
 source3_fft = fft(ica_s3); 
@@ -88,16 +82,16 @@ s3_power_fft = s3(1:N/2+1).^2;
 s3_power_fft(2:end-1) = 2*s3_power_fft(2:end-1); 
 
 figure(1) % Select the ICA source with the highest peak within the normal HR freq (0.8 to 3 in the freq domain, 48-180 bpm in the time domain)) 
+subplot(3,1,3)
+plot(freq, s3_power_fft)
 subplot(3,1,1)
 plot(freq, s1_power_fft)
 subplot(3,1,2)
 plot(freq, s2_power_fft)
-subplot(3,1,3)
-plot(freq, s3_power_fft)
 
-freq_range = find(freq>=1 & freq<=2) ; % extracts the indices of the frequencies that are within the range of 0.8 and 3 
+freq_range = find(freq>=.8 & freq<=3) ; % extracts the indices of the frequencies that are within the range of 0.8 and 3 
 source_select_array = [max(s1_power_fft(freq_range)), max(s2_power_fft(freq_range)), max(s3_power_fft(freq_range))]; % finds the max of each source of the corresponding indices of the frequencies between 0.8 and 3 
-[source, source_number] = max(source_select_array) % finds which source has the max in the freq range compared to the others 
+[source, source_number] = max(source_select_array); % finds which source has the max in the freq range compared to the others 
 
 if source_number == 1 % determines which source will be the 'data' that is process through the rest of the code , should only have to happen once with each moving interval 
     data = ica_s1 ; % can follow the variable name 'data' through processing 
@@ -105,8 +99,7 @@ elseif source_number == 2
     data = ica_s2 ;
 else
     data = ica_s3 ;
-end 
-    
+end
 
 % Moving Average
 data_mov_avg = smoothdata(data, 'movmean', 5); % trial moving avg function 'smoothdata'
@@ -117,7 +110,11 @@ hold on
 plot(1:N, data_mov_avg,'g')
     
 % Bandpass Filter
-[data_bp_filter,d]=bandpass(data,[0.8 3],Fs);
+% low = .8/Fs;
+% high = 3/Fs;
+% [b,a]=butter(2,[low,high]);
+% h = fvtool(b,a);
+[data_bp_filter,d]=bandpass(data_mov_avg,[0.8 3],Fs);
 
 % FFT to find HR Freq 
 data_fft = fft(data_bp_filter); 
@@ -126,40 +123,11 @@ data_power_fft = P2(1:N/2+1) ;
 data_power_fft(2:end-1) = 2*data_power_fft(2:end-1); 
 
 figure (3) 
-plot (freq, data_power_fft,'b') 
+freq = 0:Fs/N:Fs/2;
+plot(freq, data_power_fft,'b') 
 
 % peak detector
 [maxPeak, index] = max(data_power_fft); % getting max peak and index
-HR_avg = freq(index) * 60
-
-% test peak detector
-[peaks, freqs] = findpeaks(data_power_fft, freq);
-
-HR = freqs.*60
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+HR_avg = freq(index) * 60 ; 
 
 
