@@ -2,15 +2,18 @@ clear; close all; clc;
 
 Fs = 15; % framerate needs to be higher 
 % home
-mypi=raspi('IP ADDRESS','pi','password');
-cam = cameraboard(mypi,'Resolution','640x480','FrameRate',Fs,'Quality',50);
+
+load('Jeremy_data_1_98_.mat');
+% mypi=raspi('IP ADDRESS','pi','password');
+% cam = cameraboard(mypi,'Resolution','640x480','FrameRate',Fs,'Quality',50);
 end_sample=20; % set how many seconds you want to loop
 es = 20;
 roi = cell(Fs,1);
 
 tstart = tic;
 for i = 1:es 
-    img = snapshot(cam);
+    % img = snapshot(cam);
+    img = images(i).snapshot;
     if mod(i,5) == 0  || i == 1
         roi{i} = detectfaces_V2(img);
     else
@@ -23,8 +26,8 @@ for i = 1:es
             roi{i} = [250,150;300,250;250,250;300,150];
         end
     end
-    x = roi{i}(:,2);
-    y = roi{i}(:,1);
+    x = roi{i}(:,1);
+    y = roi{i}(:,2);
     Red_ROI = img(min(x):max(x),min(y):max(y),1);
     Blue_ROI = img(min(x):max(x),min(y):max(y),3);
     Green_ROI = img(min(x):max(x),min(y):max(y),2);

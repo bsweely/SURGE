@@ -20,24 +20,21 @@ if ~isempty(bboxes)
     roiForeheadY = ((bottomOfFH + topOfFH) / 2);
     roiF = [roiForeheadX roiForeheadY]; % forehead center coordinates
     roii{1} = [roiF(1)-A roiF(2)+A/2; roiF(1)-A roiF(2)-A/2; roiF(1)+A roiF(2)+A/2; roiF(1)+A roiF(2)-A/2];
-    drawROI(roii{1}, img, '');
 
     % isolating cheeks
     leftCheekX = (min(x) + faceWidth*0.3);
     leftCheekY = (min(y) + faceHeight*0.65);
     roiL = [leftCheekX leftCheekY];
     roii{2} = [roiL(1)-A/2 roiL(2)+A/2; roiL(1)-A/2 roiL(2)-A/2; roiL(1)+A/2 roiL(2)+A/2; roiL(1)+A/2 roiL(2)-A/2];
-    drawROI(roii{2}, img, '');
 
     rightCheekX = (min(x) + faceWidth*0.7);
     rightCheekY = (min(y) + faceHeight*0.65);
     roiR = [rightCheekX rightCheekY];
     roii{3} = [roiR(1)-A/2 roiR(2)+A/2; roiR(1)-A/2 roiR(2)-A/2; roiR(1)+A/2 roiR(2)+A/2; roiR(1)+A/2 roiR(2)-A/2];
-    drawROI(roii{3}, img, '');
     
     bboxes = [roii{1}(1,1) roii{1}(2,2) 2*A A; roii{2}(1,1) roii{2}(2,2) A A; roii{3}(1,1) roii{3}(2,2) A A];
     Ifaces=insertObjectAnnotation(img, 'rectangle', bboxes, 'ROI');
-    % imagesc(Ifaces), title('Detected forehead'), drawnow;
+    imagesc(Ifaces), title('Detected forehead'), drawnow;
 else
     roii{1} = 1;
     roii{2} = 1;

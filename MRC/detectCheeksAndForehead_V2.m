@@ -1,11 +1,16 @@
 % Detecting the eyes and nose to make the ROI
-function [roiForehead, roiLeftCheek, roiRightCheek] = detectbothcheeks_V2(img)
+function [roiForehead, roiLeftCheek, roiRightCheek] = detectCheeksAndForehead_V2(img)
 % detectfaces_V2.m code
 faceDetector = vision.CascadeObjectDetector;
 bboxes = step(faceDetector,img);
 Ifaces=insertObjectAnnotation(img, 'rectangle', bboxes, 'Face');
 if ~isempty(bboxes)
     roiHead = bbox2points(bboxes);
+    
+    % If there are multiple faces present in the frame, the collowing line
+    % takes the biggest (and therefore the real) face and sets the rois from
+    % it.
+    roiHead = getBiggestROI(roiHead);
     imagesc(Ifaces), title('Detected faces'), drawnow;
     
     % isolating the forehead
@@ -28,6 +33,7 @@ if ~isempty(bboxes)
     roiForeheadX = [min(x); min(x); max(x); max(x)];
     roiForeheadY = [bottomOfFH; topOfFH; bottomOfFH; topOfFH];
     roiForehead = [roiForeheadX roiForeheadY];
+    drawROI(roiForehead, img, 'roiForehead')
 
     % isolating cheeks
 
@@ -37,10 +43,12 @@ if ~isempty(bboxes)
     leftCheekX = [min(x); min(x); min(x) + faceWidth*0.4; min(x) + faceWidth*0.4];
     leftCheekY = [min(y); min(y) + faceHeight*0.5; min(y); min(y) + faceHeight*0.5];
     roiLeftCheek = [leftCheekX leftCheekY];
+    drawROI(roiLeftCheek, img, 'roiLeftCheek')
 
     rightCheekX = [min(x) + faceWidth*0.6; min(x) + faceWidth*0.6; max(x); max(x)];
     rightCheekY = [min(y); min(y) + faceHeight*0.5; min(y); min(y) + faceHeight*0.5];
     roiRightCheek = [rightCheekX rightCheekY];
+    drawROI(roiRightCheek, img, 'roiRightCheek')
 else
     roiForehead = 1;
     roiLeftCheek = 1;

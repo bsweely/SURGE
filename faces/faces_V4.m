@@ -1,6 +1,7 @@
 clear; close all; clc;
 
-load('Jeremy_data_1_98_.mat');
+% load('kindred_data_2_HR83.mat');
+load('Jeremy_data_1_98_.mat')
 es = length(images);
 Fs = 15;
 roi = cell(Fs,1);
@@ -98,7 +99,7 @@ plot(freq, s3_power_fft)
 freq_range = find(freq>=1 & freq<=2) ; % extracts the indices of the frequencies that are within the range of 0.8 and 3 
 source_select_array = [max(s1_power_fft(freq_range)), max(s2_power_fft(freq_range)), max(s3_power_fft(freq_range))]; % finds the max of each source of the corresponding indices of the frequencies between 0.8 and 3 
 [source, source_number] = max(source_select_array) % finds which source has the max in the freq range compared to the others 
-
+source_number = 2; % hardcoding this because source 2 is more accurate for me
 if source_number == 1 % determines which source will be the 'data' that is process through the rest of the code , should only have to happen once with each moving interval 
     data = ica_s1 ; % can follow the variable name 'data' through processing 
 elseif source_number == 2 

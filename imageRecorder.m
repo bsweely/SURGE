@@ -12,13 +12,16 @@ numFrames = 500;
 timesPerFrame = zeros(1,numFrames);
 totalTimes = zeros(1,numFrames);
 name = input("Enter name with tick marks like 'john' or 'emily'. When your name is typed, look into the camera and press enter, and the program will start. Enter name: ");
-numTime = input("Type '1' if this is the first of two files for you, or type '2' if this is the second file: ")
+numTime = input("Type the file number: ")
 fileName = strcat(name, '_data_', numTime, '_');
 images = struct();
 
 % getting the videos for data collection
 for i = 1:numFrames
+    tic
     images(i).snapshot = snapshot(cam);
+    t = tic;
+    
     
     if i == 1
         disp('Program has started. Wait until you see "500 done..." in the command line...')
@@ -36,7 +39,7 @@ end
 disp('500 done. Please wait as the file processes...')
 HR = input("Please enter the pulse oximeter heart rate if you have one as 'HR'. If you don't have one, just type '' instead: ")
 % saving the .mat file
-fileName = strcat(fileName, HR, '_.mat');
+fileName = strcat(fileName, 'HR', HR, '_.mat');
 save(fileName, 'images')
 
 disp(strcat('Check the "current folder" to the right to see if a .mat file named: ',fileName,...

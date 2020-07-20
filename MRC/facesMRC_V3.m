@@ -5,7 +5,8 @@ Fs = 90; % framerate needs to be higher % 480p@90fps is the max fps the camera d
 
 %{
 mypi=raspi('IP Address','pi','password');
-cam = cameraboard(mypi,'Resolution','640x480','FrameRate',Fs,'Quality',50);
+cam =
+cameraboard(mypi,'Resolution','640x480','FrameRate',Fs,'Quality',50);5
 %}
 
 load('Jeremy_data_1_98_.mat');

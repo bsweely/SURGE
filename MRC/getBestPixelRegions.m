@@ -30,13 +30,6 @@ pixelRegions(qtyOfDifferentPixelBoxes) = struct();
 
 %% Getting the pixelRegion information
 
-% stuff that is printing for debugging
-tt = pixelBoxArrays;
-t = struct2table(pixelBoxArrays);
-e = struct2table(pixelBoxArrays(1,1));
-f = struct2table(pixelBoxArrays(1,1).frame);
-g = struct2table(pixelBoxArrays(1,1).frame(1));
-
 for i = 1:qtyOfFrames % For each image that we have collected
     for j = 1:qtyOfDifferentPixelBoxes(i)
         i;
@@ -59,7 +52,7 @@ for pixelBox = 1:qtyOfDifferentPixelBoxes(pixelBoxCounter)
     timesLength = length(totalTimes);
     totalTimes;
     
-    pixelRegions(pixelBox).rois = pixelBoxArrays(2).frame(pixelBox).pixelBoxInstance.roiCoords;
+    pixelRegions(pixelBox).rois = pixelBoxArrays(1).frame(pixelBox).pixelBoxInstance.roiCoords;
     
     % p = pixelRegions(pixelBox).rIntensities
     
@@ -79,14 +72,14 @@ for pixelBox = 1:qtyOfDifferentPixelBoxes(pixelBoxCounter)
     psdx = (1/(Fs*N)) * abs(xdft).^2;
     psdx(2:end-1) = 2*psdx(2:end-1);
     freq = 0:Fs/N:Fs/2;
-    f = length(freq);
+    freqLength = length(freq);
 
     % Bandpass Filter
     [filter_out,d]=bandpass(X,bandpassFilter,Fs); % [filter_out,d]=bandpass(X,[0.5 5],Fs);
     Y=filter_out(1:length(X));
-    pulse_fft = fft(Y) ; 
+    pulse_fft = fft(Y);
     P2 = abs(pulse_fft/N); 
-    power_fft = P2(1:N/2+1) ; 
+    power_fft = P2(1:N/2+1); 
     power_fft(2:end-1) = 2*power_fft(2:end-1); 
     
     %{
@@ -163,7 +156,7 @@ for pixelBox = 1:qtyOfDifferentPixelBoxes(pixelBoxCounter)
     B = abs(B(length(B))); % Getting the integral here
     
     pixelRegions(pixelBox).gmetrics = abs(A./(B - A));
-    g = pixelRegions(pixelBox).gmetrics % The goodness metric calculation for this particular pixelBox
+    g = pixelRegions(pixelBox).gmetrics; % The goodness metric calculation for this particular pixelBox
     
     pixelBoxCounter = pixelBoxCounter + 1; % incrementing the pixel box that is being analyzed
     figureCounter = figureCounter + 3;
@@ -172,10 +165,20 @@ end
 %% returning the top pixel box(es) for tracking PPG 
 
 % Sorting based on the struct itself, not converting it to a table to sort
-[x,idx]=sort([pixelRegions.gmetrics], 'descend')
+[x,idx]=sort([pixelRegions.gmetrics], 'descend');
 clear x;
-bestPixelRegions=pixelRegions(idx)
-bestPixelRegions = bestPixelRegions(1:numBestBoxes)
+
+bestPixelRegions=pixelRegions(idx);
+
+% Returning as many of the best pixel regions as are available out of the
+% requested number. So, if 10 are requested but there are only 8 total,
+% then it will return 8. If 20 were available, it would return 10
+
+if length(idx) >= numBestBoxes
+    bestPixelRegions = bestPixelRegions(1:numBestBoxes)
+% else
+%     return bestPixelRegions as is
+end
 
 % sorting the pixelRegions by biggest gmetrics in descending order
 %{
