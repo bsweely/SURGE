@@ -11,6 +11,9 @@
 #include "opencv2/imgproc.hpp" 
 #include "opencv2/objdetect.hpp"
 #include "opencv2/videoio.hpp"
+#include <linux/videodev2.h>
+
+V4l2::Camera test;
 
 
 int main (int argc, char** argv) {
@@ -23,8 +26,6 @@ int main (int argc, char** argv) {
 
     int i = 0;
     int j = 0;
-
-    
 
     // Code:
     // Set framerate and/or total frames to capture if given
@@ -42,7 +43,7 @@ int main (int argc, char** argv) {
     }
     
     std::cout << "Frames to capture: " << totalframes << '\n';
-    std::cout << "Frame rate       : " << framerate << '\n';
+    std::cout << "Camera frame rate: " << framerate << '\n';
         
 
     // CONNECT TO CAMERA

@@ -1,80 +1,96 @@
 import numpy
 import picamera
 import picamera.array
+import time
+import io
+import scipy
+import scipy.signal
+
+
 
 def main():
     # Variables:
     framenum   = 0
-    framerate  = 60
+    framerate  = 120
     frametotal = 240
-
+    
+    images = []
+    r = numpy.zeros(60)
+    g = numpy.zeros(60)
+    b = numpy.zeros(60)
     
     # Iterators
     i = 0
     j = 0
     k = 0
 
-
     # Connect to camera
     camera = picamera.PiCamera()
-    # camera.resolution = (640, 480)
     camera.resolution = (640, 480)
     camera.brightness = 100
     camera.framerate = framerate
+
+    time.sleep(0.1)
+
+    rawCapture = picamera.array.PiRGBArray(camera)
+    camera.capture(rawCapture, format="bgr")
     
-    # Create array of images {image,x,y,rgb}
-    images     = numpy.empty((240, 640, 480, 3), dtype=numpy.uint8)
-    # Create temp array to store images 
-    #img = numpy.zeros((64,64,3))
-    
+    # Start timer
+    t_start = time.time()
         
     while 1: 
-        for i in range(i, i+10): # ( ; i < (j+10); i++)
-            img = numpy.zeros((640, 480, 3), dtype=numpy.uint8)
-            camera.capture(img, 'rgb')
-            images[i] = img
-            #img.truncate(0)
+        # Gets and stores images
+        for i in range(i, i+10):
+            # capture not working right, seems like it only captures one frame several times
+            images.append(rawCapture.array)
+            time.sleep(1/60)
             framenum += 1
-            # take and store image
-            # get rgb signal channels
-
-        # Stores 60 frames
-        #if i == 60:
-        #    i = 0
-        #    j = 0
         
-        
+        i+=1
 
-        print(framenum)
-        if framenum == 10: #frametotal:
+        if framenum == 60:
+            t_capture = time.time()
+            print("capture rate: %.2f" % (framenum/(t_capture-t_start)), "(Hz)")
+        
+        # Limits stored images to 60
+        if i == 60:
+            i = 0
+            j = 0
+            for j in range(j, j+60):
+                # Get RGB intensities
+                r[j] = numpy.sum(images[j][:][:][3])
+                g[j] = numpy.sum(images[j][:][:][2])
+                b[j] = numpy.sum(images[j][:][:][1])
+
+                # Detrend and normalize RGB intensities
+                # detrend isn't used correctly I think
+                #r_norm = scipy.signal.normalize(scipy.signal.detrend(r), [1])
+                #g_norm = scipy.signal.normalize(scipy.signal.detrend(g), [1])
+                #b_norm = scipy.signal.normalize(scipy.signal.detrend(b), [1])
+
+        if framenum >= 240: #frametotal:
+            camera.close()
+            t_finish = time.time()
+            t_total = t_finish-t_start
+            print("time to run : %.3f" % (t_total), "(s)")
             break
 
-    ### TESTING ###  ### TESTING ### 
-
-    # image = camera.capture(output, 'rgb')
-
-    #camera.capture(img, 'rgb')
-    #numpy.append(images,img)
-    # igg2.append(img)
-    #img.truncate(0)
-    #camera.capture(img, 'rgb')
-    #images.append(img)
-    # camera.capture_sequence([images for i in range(10)])
-
-    #print(igg2)
-    #print(images)
-
-    #if images[0] == images[1]:
-    #    print("Equal")
-    #else:
-    #    print("Not Equal")
-
-    # framenum, image x, image y, rgb
-    # print('Captured Image[%d] %dx%dx%d ' % (framenum, img.array.shape[1], img.array.shape[0], img.array.shape[2]))
 
     ### TESTING ###  ### TESTING ### 
 
+    ### TESTING ###  ### TESTING ### 
+
+def GetImage(images, i, framenum, rawCapture):
+    print("yes")
+    for i in range(i, i+10):
+        images.append(rawCapture.array)
+        time.sleep(1/60)
+        framenum += 1
     
+
+
+
 
 if __name__ == "__main__":
     main()
+
