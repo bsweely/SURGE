@@ -1,4 +1,4 @@
-function bestPixelRegions = getBestPixelRegions(pixelBoxArrays, Fs, totalTimes, timesPerFrame, bandpassFilter, error, numBestBoxes, pulseRate)
+function bestPixelRegions = getBestPixelRegions(pixelBoxArrays, Fs, bandpassFilter, error, numBestBoxes, pulseRate)
 % This returns the cleanest Pixelboxes according to the goodness metric
 
 qtyOfFrames = length(pixelBoxArrays); % this is the number of instances of each pixel box as catalogged in pixelBoxArrays
@@ -160,7 +160,7 @@ for pixelBox = 1:qtyOfDifferentPixelBoxes(pixelBoxCounter)
     % a2 = freq<AUpper;
     
     % getting PSD values that correspond to the frequency values above
-    ARange = 10*log10(power_fft).*(freq>ALower);
+    ARange = 10*log10(data_power_fft).*(freq>ALower);
     ARange = ARange.*(freq<AUpper);
     
     % Getting the pulse rate integral as mentioned in the literature (Kumar
@@ -177,7 +177,7 @@ for pixelBox = 1:qtyOfDifferentPixelBoxes(pixelBoxCounter)
     BDomain = BDomain.*(freq<BUpper); % freq within bandpass filter
     % b2 = freq<BUpper
     
-    BRange = 10*log10(power_fft).*(freq>BLower);
+    BRange = 10*log10(data_power_fft).*(freq>BLower);
     BRange = BRange.*(freq<BUpper); % PSD within bandpass filter
     
     % Getting bandpass integral as described in the Kumar paper

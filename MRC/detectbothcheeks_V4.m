@@ -1,4 +1,4 @@
-function roii = detectbothcheeks_V3(img)
+function rois = detectbothcheeks_V3(img)
 % detectfaces_V2.m code
 faceDetector = vision.CascadeObjectDetector;
 bboxes = step(faceDetector,img);
@@ -39,5 +39,8 @@ else
     roii{1} = 1;
     roii{2} = 1;
     roii{3} = 1;
+    roiHead = 1;
 end
+rois = cell(1,2);
+rois = {roii, roiHead};
 end
