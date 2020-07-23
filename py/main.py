@@ -41,7 +41,7 @@ def main():
     while 1: 
         # Gets and stores images
         for i in range(i, i+10):
-            # capture not working right, seems like it only captures one frame several times
+            # capture not working right, seems like it only captures one frame several times, might be with getting RGB intensities
             images.append(rawCapture.array)
             time.sleep(1/60)
             framenum += 1
@@ -57,22 +57,33 @@ def main():
             i = 0
             j = 0
             for j in range(j, j+60):
+                # Find ROI and crop array
+
                 # Get RGB intensities
-                r[j] = numpy.sum(images[j][:][:][3])
-                g[j] = numpy.sum(images[j][:][:][2])
-                b[j] = numpy.sum(images[j][:][:][1])
+                r[j] = numpy.sum(images[j][:][:][2])
+                g[j] = numpy.sum(images[j][:][:][1])
+                b[j] = numpy.sum(images[j][:][:][0])
 
-                # Detrend and normalize RGB intensities
-                # detrend isn't used correctly I think
-                #r_norm = scipy.signal.normalize(scipy.signal.detrend(r), [1])
-                #g_norm = scipy.signal.normalize(scipy.signal.detrend(g), [1])
-                #b_norm = scipy.signal.normalize(scipy.signal.detrend(b), [1])
+                # Detrend RGB intensities
+                r_detrend = scipy.signal.detrend(r)
+                g_detrend = scipy.signal.detrend(g)
+                b_detrend = scipy.signal.detrend(b)
+                
+                # Normalize RGB intensities
+                # z = (x-mu)/sigma
+                r_norm = (r_detrend - r_detrend.mean(0)) / r_detrend.std(0) 
+                g_norm = (g_detrend - r_detrend.mean(0)) / r_detrend.std(0)
+                b_norm = (b_detrend - r_detrend.mean(0)) / r_detrend.std(0)
 
-        if framenum >= 240: #frametotal:
+        if framenum >= 60: #frametotal:
             camera.close()
             t_finish = time.time()
             t_total = t_finish-t_start
             print("time to run : %.3f" % (t_total), "(s)")
+            #print()
+            #print(r_norm)
+            #print()
+            #print(g_norm)
             break
 
 
@@ -80,17 +91,14 @@ def main():
 
     ### TESTING ###  ### TESTING ### 
 
+### Functions ###
+
 def GetImage(images, i, framenum, rawCapture):
     print("yes")
     for i in range(i, i+10):
         images.append(rawCapture.array)
         time.sleep(1/60)
         framenum += 1
-    
-
-
-
 
 if __name__ == "__main__":
     main()
-
