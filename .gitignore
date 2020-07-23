@@ -1,6 +1,5 @@
-MRC/VideoProcessing
-MRC/faceImages.mat
-MRC/VideoProcessing2
+MATLAB/MRC/VideoProcessing
+MATLAB/MRC/faceImages.mat
+MATLAB/MRC/VideoProcessing2
 Jeremy_Data
-MRC/facesMRC_V4.m
 imageRecorder.m
