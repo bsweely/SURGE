@@ -7,9 +7,86 @@ import io
 import scipy
 import scipy.signal
 import imageio
+import cv2
 
+def getMaxAndMinXAndY(bbox):
+    '''
+
+    Parameters
+    ----------
+    bbox : [x, y, w, h] like in MATLAB
+
+    Returns
+    -------
+    list
+        [minX, maxX, minY, maxY]
+
+    '''
+    (x, y, w, h) = bbox
+    
+    return [x, x+w, y, y+h]
+
+def bbox2points(bbox):
+    '''
+    This function returns a set of four points from a bbox, which is the
+    format of the faces from the detectfaces function, like how it was in MATLAB.
+    '''
+    roi = np.array([[x, y], [x, y+h], [x+w, y], [x+w, y+h]])
+    
+    return roi
+
+def getBiggestDetectedFace(faces):
+    '''
+    This function intakes the faces array that is made from the cv2 face
+    classifier, so it decides which face is mostlikely the true one by finding
+    the biggest detected face in the list of faces
+    '''
+    faceAreas = []
+    for (x, y, w, h) in faces:
+        faceAreas.append(w*h)
+    index = faceAreas.index(max(faceAreas))
+    
+    # returning largest face, probably the true face incase of errors in face detection
+    return faces[index]
+        
+
+def reduceImagesToFaces(images):
+    '''
+    This is the analog to detectfaces.m in the MATLAB code. The code here
+    is sourced from a github, which I have downloaded. This function intakes
+    the array of images and returns an array of the same images but with
+    the detected faces in them.
+    '''
+    cascadePath = 'haarcascade_frontalface_default.xml'
+    faceDetector = cv2.CascadeClassifier(cascadePath)
+    for image in images:
+        image = cv2.imread(image)
+        grayImage = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        
+        # Detecting faces
+        faces = faceCascade.detectMultiScale(
+            grayimage,
+            scaleFactor = 1.1,
+            minNeighbors = 5,
+            minSize = (30, 30)
+            #flags = cv2.CV_HAAR_SCALE_IMAGE
+            )
+        print("{0} faces were found for image: %02d".format(len(faces)) % image)
+        
+        if len(faces) != 0: # testing to make sure that there is indeed a face
+            for (x, y, w, h) in faces: # notice that the format (x, y, w, h) is the bbox format
+                cv2.rectangle(image, (x, y), (x+w, y+h), (0, 255, 0), 2)
+            cv2.imshow("detect face(s)", image)
+            cv2.waitKey(0)
+            
+            biggestFace = getBiggestDetectedFace(faces)
+            [minX, maxX, minY, maxY] = getMaxAndMinXAndY(biggestFace)
+            
+            image = image[minX:maxX, minY:maxY]
+            
+    return images 
+        
 def getListOfJPGs(length, start = 1, step = 1):
-
     images = []
     for i in range(start, length, step):
         images.append('image%02d.jpg' % i)
@@ -72,8 +149,10 @@ def main():
         images = getListOfJPGs(start = i, length = i+movingAverageIncrement)
         # print(images)
         camera.capture_sequence(images, use_video_port = True)
+        
+        
         for image in range(len(images)):
-            images[image] = imageio.imread(images[image]) # makes numpy RGb array by default
+            images[image] = imageio.imread(images[image]) # makes numpy RGB array by default
 
         if framenum == 60:
             t_capture = time.time()
