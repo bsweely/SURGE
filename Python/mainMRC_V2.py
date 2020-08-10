@@ -1,6 +1,6 @@
 from io import BytesIO
 import time
-import numpy
+import numpy as np
 import picamera
 import picamera.array
 import io
@@ -8,35 +8,45 @@ import scipy
 import scipy.signal
 import imageio
 import cv2
+import matplotlib.pyplot as plt
 
 '''
 Herein are the classes and functions that we need to execute the MRC algorithm.
 
 Things not implemented yet include:
     1. Goodness metric coarse estimation
-    
+
     2. Face tracking to transform new images to fit the previous ones
-    
+
 Ideas:
     1. Have the face detection detect faces like before, and when face tracking
     is implemented, then use the same roi coordinates as before to reduce computational
-    load. 
-    
+    load.
+
     2. Perhaps define the quantity of new images for the moving average and
     make the code transform each image and use the same roi coordinates for
     this defined set of images.
-    
-    3. After each iteration of the gathering new images, the roi coordinates, 
+
+    3. After each iteration of the gathering new images, the roi coordinates,
     face tracking points, and the chosen best region of interest are all reset
     and recalculated to account for movement of the patient.
-    
+
     4. Have a feature of the face detection to detect of the face is in a profile
-    position, as newborns often sleep with their heads to the side. 
+    position, as newborns often sleep with their heads to the side.
 
 How this program works
     1. This program takes a series of images quickly and processes them offline,
     for the Raspberry Pi doesnt seem able to process the images quickly enough
     online
+
+Notes:
+    1. PIL is consitently 3 to 4 times as slow as cv2 when processing images, according to this site:
+
+    https://www.kaggle.com/vfdev5/pil-vs-opencv
+
+    So, I am using cv2 to so the image processing and loading here instead of Pillow
+
+
 '''
 
 class PixelBox():
@@ -44,11 +54,11 @@ class PixelBox():
     rIntensity = 0
     bIntensity = 0
     gIntensity = 0
-    
+
 
 def get20x20PixelRegions(image, minX, maxX, minY, maxY):
     '''
-    
+
 
     Parameters
     ----------
@@ -72,11 +82,11 @@ def get20x20PixelRegions(image, minX, maxX, minY, maxY):
     yPoints = np.arange(minY. maxY, 20)
     listOf20x20Regions = []
     index = 0
-    
+
     for xPoint in range(len(xPoints)):
         for yPoint in range(len(yPoints)):
             roi = [[]]
-    
+
     return listOf20x20Regions
 
 def getMaxAndMinXAndY(bbox):
@@ -92,22 +102,22 @@ def getMaxAndMinXAndY(bbox):
 
     '''
     (x, y, w, h) = bbox
-    
+
     return [x, x+w, y, y+h]
 
 def bbox2points(bbox):
     '''
     This function returns a set of four points from a bbox, which is the
     format of the faces from the detectfaces function, like how it was in MATLAB.
-    
+
     Not used yet becasue the ROI in this program is not structured in this way,
     and we do not need this function so far.
     '''
     (x, y, w, h) = bbox
     roi = np.array([[x, y], [x, y+h], [x+w, y], [x+w, y+h]])
-    
+
     return roi
-    
+
 def getBiggestDetectedFace(faces):
     '''
     This function intakes the faces array that is made from the cv2 face
@@ -118,10 +128,10 @@ def getBiggestDetectedFace(faces):
     for (x, y, w, h) in faces:
         faceAreas.append(w*h)
     index = faceAreas.index(max(faceAreas))
-    
+
     # returning largest face, probably the true face incase of errors in face detection
     return faces[index]
-        
+
 
 def reduceImagesToFaces(images):
     '''
@@ -129,19 +139,17 @@ def reduceImagesToFaces(images):
     is sourced from a github, which I have downloaded. This function intakes
     the array of images and returns an array of the same images but with
     the detected faces in them.
-    
+
     This does not yet detect faces every 5 frames or so. It detects the face
-    in each image. 
+    in each image.
     '''
     cascadePath = 'haarcascade_frontalface_default.xml'
     faceDetector = cv2.CascadeClassifier(cascadePath)
     for image in images:
-        image = cv2.imread(image)
-        
-        # may not need this conversion if we read the images with the imageio
-        # method, for it makes a numpy array of RGB image data
+        image = cv2.imread(image) # in BGR format, not RGB
+
         grayImage = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-        
+
         # Detecting faces
         faces = faceCascade.detectMultiScale(
             grayimage,
@@ -151,20 +159,20 @@ def reduceImagesToFaces(images):
             #flags = cv2.CV_HAAR_SCALE_IMAGE
             )
         print("{0} faces were found for image: %02d".format(len(faces)) % image)
-        
+
         if len(faces) != 0 or images.index(image) == 1: # testing to make sure that there is indeed a face
             for (x, y, w, h) in faces: # notice that the format (x, y, w, h) is the bbox format
                 cv2.rectangle(image, (x, y), (x+w, y+h), (0, 255, 0), 2)
             cv2.imshow("detect face(s)", image)
             cv2.waitKey(0)
-            
+
             biggestFace = getBiggestDetectedFace(faces)
             [minX, maxX, minY, maxY] = getMaxAndMinXAndY(biggestFace)
-            
+
             image = image[minX:maxX, minY:maxY]
-            
-    return images 
-        
+
+    return images
+
 def getListOfJPGs(length, start = 1, step = 1):
     images = []
     for i in range(start, length, step):
@@ -196,61 +204,60 @@ def reformatImages(images, resolution):
     -------
     transformedImages : list of images that are transformed
     according to the first image
-    
-    This function is for transforming the images into RGB data, finding 
-    corners to track, and then repositioning the images after image 1 to fit 
+
+    This function is for transforming the images into RGB data, finding
+    corners to track, and then repositioning the images after image 1 to fit
     image 1.
 
     '''
     # Getting the first image for reference
-    firstImage = imagesio.imread(images[0])
-    firstImageGray = np.copy(firstImage)
-    firstImageGray = RGb2gray(firstImageGray)
-    
+    firstImage = cv2.imread(images[0]) # Note: This is in BGR format, not RGB
+
+    # getting a grayscale image for the transform
+    firstImageGray = cv2.cvtColor(firstImage, cv2.COLOR_BGR2GRAY)
+
     firstImageCorners = cv2.cornerHarris(firstImageGray, 4, 3, 0.04)
     firstImagePoints = np.float32(firstImageCorners)
     for image in images:
         if image != images[0]: # if this is the second to Nth image:
-            # Converting the images into RGB numpy arrays from BGR numpy arrays,
+            # Converting the images into RGB np arrays from BGR np arrays,
             # assuming that the image outpout from camera.capture_sequence is not RGB
-            image = imagesio.imread(image)
-            
-            # Now tracking image to transform according to the 
+            image = cv2.imread(image)
+
+            # Now tracking image to transform according to the
             # first image in the array
-            # making a copy of the image into RGB form
-            image2 = np.copy(image)
-            
+
             # image must be in gray scale for corner detection
-            image2 = RGB2gray(image2)
-            
+            image2 = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+
             # showing image to check conversion
             plt.show(image2)
-            
+
             # Getting the corners of the image with Harris Corners Method
             corners = cv2.cornerHarris(image2, 4, 3, 0.04)
             print("checking corner objects: ", corners)
-            
+
             # Transforming the image in accordance with the first image
             newImagePoints = np.float32(corners)
             transform = cv2.getPerspectiveTransform(firstImagePoints, newImagePoints)
             image = cv2.warpPerspective(image, transform, (image.shape[1], images.shape[0]), flags = cv2.INTER_LINEAR)
         else:
             pass # if this is the first image
-    
+
     return images
-        
+
 
 def main():
     # Variables:
     framenum   = 0
     framerate  = 120
     frametotal = 60
-    movingAverageIncrement = 10
+    movingAverageIncrement = 10fuy7
 
     images = []
-    r = numpy.zeros(60)
-    g = numpy.zeros(60)
-    b = numpy.zeros(60)
+    r = np.zeros(60)
+    g = np.zeros(60)
+    b = np.zeros(60)
 
     # Iterators
     i = 0
@@ -269,8 +276,15 @@ def main():
     # time.sleep(2)
     camera.brightness = 100
     camera.framerate = framerate
-    # camera.start_preview()
+    camera.start_preview()
     time.sleep(5)
+
+    # Connect to camera
+    with picamera.PiCamera() as camera:
+        camera.start_preview()
+        time.sleep(2)
+        camera.capture_sequence(images)
+    # make numpy array from stream
 
     # Start timer
     t_start = time.time()
@@ -284,15 +298,15 @@ def main():
         images = getListOfJPGs(start = i, length = i+movingAverageIncrement)
         # print(images)
         camera.capture_sequence(images, use_video_port = True)
-        
+
         # transforming images
         t1 = time.time()
         images = reformatImages(images, resolution)
         t2 = time.time()
-        
+
         # checking for timely function execution
         print("time to reformat images: ", t2 - t1)
-        
+
         if framenum == 60:
             t_capture = time.time()
             print("capture rate: %.2f" % (framenum/(t_capture-t_start)), "(Hz)")
@@ -306,13 +320,15 @@ def main():
                 # Find ROI and crop array
 
                 # Get RGB intensities
+                # In a BGR Numpy array, in the third axis, 0 is B, 1 is G, and 2 is R. 3 is Transparency
+
                 print(j)
                 print('j is %02d' % j)
                 print(images[j])
                 print(images[j][1])
-                r[j] = numpy.sum(images[j][:][:][2])
-                g[j] = numpy.sum(images[j][:][:][1])
-                b[j] = numpy.sum(images[j][:][:][0])
+                r[j] = np.sum(images[j][:][:][2])
+                g[j] = np.sum(images[j][:][:][1])
+                b[j] = np.sum(images[j][:][:][0])
 
                 # Detrend RGB intensities
                 r_detrend = scipy.signal.detrend(r)
@@ -345,7 +361,7 @@ def main():
 
 def GetImage(images, i, framenum, rawCapture):
     print("yes")
-    for i in range(i, i+movingAverageIncrement:
+    for i in range(i, i+movingAverageIncrement):
         images.append(rawCapture.array)
         time.sleep(1/60)
         framenum += 1
