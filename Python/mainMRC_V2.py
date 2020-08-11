@@ -58,7 +58,7 @@ class PixelBox():
 
 def get20x20PixelRegions(image, minX, maxX, minY, maxY):
     '''
-
+    This function is not finished yet
 
     Parameters
     ----------
@@ -252,8 +252,7 @@ def main():
     framenum   = 0
     framerate  = 120
     frametotal = 60
-    movingAverageIncrement = 10fuy7
-
+    movingAverageIncrement = 10
     images = []
     r = np.zeros(60)
     g = np.zeros(60)
@@ -284,25 +283,31 @@ def main():
         camera.start_preview()
         time.sleep(2)
         camera.capture_sequence(images)
-    # make numpy array from stream
+        camera.stop_preview() # added to try to take away the white screen
+
+    # make numpy array from stream - not needed yet, but maybe later
 
     # Start timer
     t_start = time.time()
 
     # capture Initial Images, however many are in the frame total to get an initial count of images
-    camera.capture_sequence(images, use_video_port = True)
+    # This code is replaced with the with statement above, but it might be necessary later
+    # camera.capture_sequence(images, use_video_port = True)
 
     while 1:
-        i+=1
+        i+=frametotal # starting at the total frame count to start the moving acerage calculation
         # Gets and stores images
-        images = getListOfJPGs(start = i, length = i+movingAverageIncrement)
+        newImages = getListOfJPGs(start = i, length = i+movingAverageIncrement)
         # print(images)
-        camera.capture_sequence(images, use_video_port = True)
+        camera.capture_sequence(newImages) # camera.capture_sequence(images, use_video_port = True)
 
         # transforming images
         t1 = time.time()
-        images = reformatImages(images, resolution)
+        newImages = reformatImages(newImages, resolution)
         t2 = time.time()
+
+        # appending newly collected images to the 
+        images.append(newImages)
 
         # checking for timely function execution
         print("time to reformat images: ", t2 - t1)
