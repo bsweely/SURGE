@@ -23,19 +23,30 @@ def reduceToLastNIndices(array, n):
         newArray = array[(length - n):length]
         return newArray
 
-'''
+
 from picamera import PiCamera
+
+'''
 camera = PiCamera()
 
 camera.start_preview()
 time.sleep(5)
-camera.capture('/home/pi/Desktop/image.jpg')
+camera.capture('/home/pi/Desktop/imageFromTestCode.jpg')
 camera.stop_preview()
 '''
-# testing different image processing code
 
-from PIL import Image
-
+# Testing the camera.capture_sequence() method
+# import time
+# import picamera
+with PiCamera() as camera:
+    camera.start_preview()
+    time.sleep(2)
+    camera.capture_sequence([
+        'image1.jpg',
+        'image2.jpg',
+        'image3.jpg',
+        ])
+    camera.stop_preview()
 
 
 

@@ -175,7 +175,7 @@ def reduceImagesToFaces(images):
 
 def getListOfJPGs(length, start = 1, step = 1):
     images = []
-    for i in range(start, length, step):
+    for i in range(start, length + 1, step):
         images.append('image%02d.jpg' % i)
     return images
 
@@ -215,9 +215,14 @@ def reformatImages(images, resolution):
 
     # getting a grayscale image for the transform
     firstImageGray = cv2.cvtColor(firstImage, cv2.COLOR_BGR2GRAY)
+    firstImageGray = np.float32(firstImageGray)
 
-    firstImageCorners = cv2.cornerHarris(firstImageGray, 4, 3, 0.04)
-    firstImagePoints = np.float32(firstImageCorners)
+    # Getting points to track - There is a GoodFeaturesToTrack method in cv2 online, like in the MATLAB code, so
+    # we can try that if the cornerHarris method is not as good
+    # Visit this URL for information on GoodFeaturesToTrack in Python
+    # https://www.geeksforgeeks.org/python-corner-detection-with-shi-tomasi-corner-detection-method-using-opencv/
+
+    firstImagePoints = cv2.cornerHarris(firstImageGray, 2, 3, 0.04)
     for image in images:
         if image != images[0]: # if this is the second to Nth image:
             # Converting the images into RGB np arrays from BGR np arrays,
@@ -229,17 +234,20 @@ def reformatImages(images, resolution):
 
             # image must be in gray scale for corner detection
             image2 = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+            image2 = np.float32(image2)
 
             # showing image to check conversion
-            plt.show(image2)
+            # plt.show(image2)
 
             # Getting the corners of the image with Harris Corners Method
-            corners = cv2.cornerHarris(image2, 4, 3, 0.04)
-            print("checking corner objects: ", corners)
+            newImagePoints = cv2.cornerHarris(image2, 2, 3, 0.04)
+            print("checking corner objects: ", newImagePoints)
 
             # Transforming the image in accordance with the first image
-            newImagePoints = np.float32(corners)
-            transform = cv2.getPerspectiveTransform(firstImagePoints, newImagePoints)
+            print("type of newImagePoints: ", type(newImagePoints))
+            print("printing newImagePoints: ", newImagePoints)
+            print("printing the type of each point in newImagePoints: ", type(newImagePoints[0]))
+            transform = cv2.getPerspectiveTransform(np.float32(firstImagePoints), np.float32(newImagePoints))
             image = cv2.warpPerspective(image, transform, (image.shape[1], images.shape[0]), flags = cv2.INTER_LINEAR)
         else:
             pass # if this is the first image
@@ -265,25 +273,35 @@ def main():
 
     # files
     images = getListOfJPGs(length = frametotal)
-    # print(images)
 
     # Connect to camera
     camera = picamera.PiCamera()
     resolution = (640, 480)
     camera.resolution = resolution
-    # camera.start_preview() # inserted. Perhaps not needed.
-    # time.sleep(2)
-    camera.brightness = 100
+    # camera.brightness = 100 # This brightness level renders the images as white boxes on the screen because the image is so bright
     camera.framerate = framerate
-    camera.start_preview()
-    time.sleep(5)
 
     # Connect to camera
+    camera.start_preview()
+    time.sleep(2)
+    camera.capture_sequence(images, use_video_port = True)
+    camera.stop_preview() # added to try to take away the white screen
+    '''
     with picamera.PiCamera() as camera:
+        resolution = (640, 480)
+        camera.resolution = resolution
+        # camera.brightness = 100 # This brightness level renders the images as white boxes on the screen because the image is so bright
+        camera.framerate = framerate
+
+        print("Images, print 2: ", images)
+
+        # Connect to camera
         camera.start_preview()
         time.sleep(2)
-        camera.capture_sequence(images)
+        camera.capture_sequence(images, use_video_port = True)
         camera.stop_preview() # added to try to take away the white screen
+    '''
+
 
     # make numpy array from stream - not needed yet, but maybe later
 
@@ -295,22 +313,30 @@ def main():
     # camera.capture_sequence(images, use_video_port = True)
 
     while 1:
-        i+=frametotal # starting at the total frame count to start the moving acerage calculation
+        i += frametotal # starting at the total frame count to start the moving acerage calculation
         # Gets and stores images
         newImages = getListOfJPGs(start = i, length = i+movingAverageIncrement)
-        # print(images)
+        print(newImages)
+        camera.resolution = resolution
+        # camera.brightness = 100 # This brightness level renders the images as white boxes on the screen because the image is so bright
+        camera.framerate = framerate
+        # camera.start_preview()
+        # time.sleep(2) # to ready the image preview
         camera.capture_sequence(newImages) # camera.capture_sequence(images, use_video_port = True)
+        # camera.stop_preview()
 
         # transforming images
         t1 = time.time()
         newImages = reformatImages(newImages, resolution)
         t2 = time.time()
 
-        # appending newly collected images to the 
+        # print("Printing images after their transformation: ", images)
+
+        # appending newly collected images to the
         images.append(newImages)
 
         # checking for timely function execution
-        print("time to reformat images: ", t2 - t1)
+        # print("time to reformat images: ", t2 - t1)
 
         if framenum == 60:
             t_capture = time.time()
@@ -318,10 +344,10 @@ def main():
 
         # Limits stored images to 60
         if i == 60:
-            camera.stop_preview() # stop showing images on the screen
+            # camera.stop_preview() # stop showing images on the screen # This line might not be necessary at this point
             i = 0
             j = 0
-            for j in range(j, j+10):
+            for j in range(j, j+movingAverageIncrement):
                 # Find ROI and crop array
 
                 # Get RGB intensities
