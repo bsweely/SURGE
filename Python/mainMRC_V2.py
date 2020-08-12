@@ -215,14 +215,27 @@ def reformatImages(images, resolution):
 
     # getting a grayscale image for the transform
     firstImageGray = cv2.cvtColor(firstImage, cv2.COLOR_BGR2GRAY)
-    firstImageGray = np.float32(firstImageGray)
+    # firstImageGray = np.float32(firstImageGray)
+    firstImageGray = firstImageGray.astype(np.float32)
+
+    # printing a grayscale color number to make sure that the array is in np.float32 type.
+    print("Type of each value in firstImageGray after .astype conversion: ", type(firstImageGray[0, 0]))
+    # prints np.float32, so this is working. Why is it not working in the getWarpPerspective function?
 
     # Getting points to track - There is a GoodFeaturesToTrack method in cv2 online, like in the MATLAB code, so
     # we can try that if the cornerHarris method is not as good
     # Visit this URL for information on GoodFeaturesToTrack in Python
     # https://www.geeksforgeeks.org/python-corner-detection-with-shi-tomasi-corner-detection-method-using-opencv/
 
-    firstImagePoints = cv2.cornerHarris(firstImageGray, 2, 3, 0.04)
+    # Testing whether cv2.GoodFeatureToTrack is better then cornerHarris method
+    # firstImagePoints = cv2.cornerHarris(firstImageGray, 2, 3, 0.04)
+    firstImagePoints = cv2.goodFeaturesToTrack(firstImageGray,25,0.01,10)
+    firstImagePoints = firstImagePoints.astype(np.float32)
+
+    # printing a grayscale color number to make sure that the array is in np.float32 type.
+    print("Type of each value in firstImagePoints after .astype conversion: ", type(firstImagePoints[0, 0]))
+    # prints np.float32, so this is working. Why is it not working in the getWarpPerspective function?
+
     for image in images:
         if image != images[0]: # if this is the second to Nth image:
             # Converting the images into RGB np arrays from BGR np arrays,
@@ -234,20 +247,33 @@ def reformatImages(images, resolution):
 
             # image must be in gray scale for corner detection
             image2 = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-            image2 = np.float32(image2)
+            # image2 = np.float32(image2)
+            image2 = image2.astype(np.float32)
+
+            # printing a grayscale color number to make sure that the array is in np.float32 type.
+            print("Type of each value in image2 after .astype conversion: ", type(image2[0, 0]))
+            # prints np.float32, so this is working. Why is it not working in the getWarpPerspective function?
 
             # showing image to check conversion
             # plt.show(image2)
 
+            # Testing whether cv2.GoodFeatureToTrack is better then cornerHarris method
+
             # Getting the corners of the image with Harris Corners Method
-            newImagePoints = cv2.cornerHarris(image2, 2, 3, 0.04)
+            # newImagePoints = cv2.cornerHarris(image2, 2, 3, 0.04)
+            newImagePoints = cv2.goodFeaturesToTrack(image2,25,0.01,10)
+            newImagePoints = newImagePoints.astype(np.float32)
             print("checking corner objects: ", newImagePoints)
+
+            # printing a grayscale color number to make sure that the array is in np.float32 type.
+            print("Type of each value in newImagePoints after .astype conversion: ", type(newImagePoints[0, 0]))
+            # prints np.float32, so this is working. Why is it not working in the getWarpPerspective function?
 
             # Transforming the image in accordance with the first image
             print("type of newImagePoints: ", type(newImagePoints))
             print("printing newImagePoints: ", newImagePoints)
             print("printing the type of each point in newImagePoints: ", type(newImagePoints[0]))
-            transform = cv2.getPerspectiveTransform(np.float32(firstImagePoints), np.float32(newImagePoints))
+            transform = cv2.getPerspectiveTransform(firstImagePoints, newImagePoints)
             image = cv2.warpPerspective(image, transform, (image.shape[1], images.shape[0]), flags = cv2.INTER_LINEAR)
         else:
             pass # if this is the first image

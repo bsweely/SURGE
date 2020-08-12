@@ -52,4 +52,3 @@ with PiCamera() as camera:
 
 
 
-
