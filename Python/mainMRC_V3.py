@@ -31,7 +31,7 @@ Ideas:
     position, as newborns often sleep with their heads to the side.
 
 Steps for Image Processing:
-    
+
     1. Collect a list of images, where each frame has at least one face in it -> getImagesInformation()
 
     2. Transform the images to have matching coordinates for the faces, and isolate the faces from the images -> reformatImages()
@@ -70,8 +70,8 @@ class FrameArray():
         '''
 
         # Looping to collect a set of images until a face is detected in each frame
-        # If there is a missing face in the current image, then there is a new image capture taken. 
-        # If there is at least one face in each frame, then this function completes. If one frame has no detected faces, 
+        # If there is a missing face in the current image, then there is a new image capture taken.
+        # If there is at least one face in each frame, then this function completes. If one frame has no detected faces,
         # the the function continues and faceInEachFrame = false, thus repeating the loop and collecting new images
         faceInEachFrame = False
 
@@ -147,8 +147,8 @@ class FrameArray():
         self.faceCorners = faceCorners
         self.firstFaceXY = firstFaceXY
 
-    
-    
+
+
 
 class Frame():
     '''
@@ -249,8 +249,8 @@ def getImagesInformation(camera, length, start = 1, step = 1, showImages = False
     '''
 
     # Looping to collect a set of images until a face is detected in each frame
-    # If there is a missing face in the current image, then there is a new image capture taken. 
-    # If there is at least one face in each frame, then this function completes. If one frame has no detected faces, 
+    # If there is a missing face in the current image, then there is a new image capture taken.
+    # If there is at least one face in each frame, then this function completes. If one frame has no detected faces,
     # the the function continues and faceInEachFrame = false, thus repeating the loop and collecting new images
     faceInEachFrame = False
 
@@ -260,6 +260,9 @@ def getImagesInformation(camera, length, start = 1, step = 1, showImages = False
         fps = 0
         for i in range(start, length + 1, step):
             images.append('image%02d' % i)
+
+        print("Finished making the list of images")
+        print("now taking the pictures...")
 
         if showImages == False:
             t_start = time.time()
@@ -273,6 +276,8 @@ def getImagesInformation(camera, length, start = 1, step = 1, showImages = False
             t_capture = time.time()
             camera.stop_preview()
 
+        print("Finished taking the pictures")
+
         # calculating frames per second for image capture
         fps = length/(t_capture - t_start)
 
@@ -282,11 +287,13 @@ def getImagesInformation(camera, length, start = 1, step = 1, showImages = False
         faceDetector = cv2.CascadeClassifier(cascadePath)
         faceCorners = np.array([])
         faces = np.zeros(len(images))
+        print("Finished making the face detector")
         print("debugging: length of faces before initializing with faces: ", length(faces))
 
         # iterating through each index in the images array to detect a face in the image
         image = 0
 
+        print("Starting the face detection")
         while image < range(length(images)): # iterating through each index of the images array to detect faces
             images[image] = cv2.imread(images[images]) # in BGR format, not RGB
 
@@ -337,7 +344,7 @@ def reduceToLastNIndices(array, n):
         newArray = array[(length - n):length]
         return newArray
 
-def reformatImages(images, faceCorners, firstFaceXY) # , resolution))
+def reformatImages(images, faceCorners, firstFaceXY):
     '''
     Paramaters
     ----------
@@ -371,7 +378,7 @@ def reformatImages(images, faceCorners, firstFaceXY) # , resolution))
         transform = cv2.getPerspectiveTransform(newImagePoints, firstImagePoints)
         images[image] = cv2.warpPerspective(images[image], transform, (images[image].shape[1], images[image].shape[0]), flags = cv2.INTER_LINEAR)
         images[image] = images[image][firstMinX:firstMaxX, firstMinY:firstMaxY]
-    
+
     # Getting the final time for reformatting
     t_final = time.time()
 
@@ -437,8 +444,8 @@ def main():
     camera.framerate = framerate
 
     # getting initial images, corners, fps, and firstfaceXY
-    (initialImages, initialCorners, initialFPS, initialFirstImageXY) = getImagesInformation(camera, 
-                                                                                            length = frameTotal, 
+    (initialImages, initialCorners, initialFPS, initialFirstImageXY) = getImagesInformation(camera,
+                                                                                            length = frametotal,
                                                                                             showImages = True)
     # checking the FPS for the Initial Images
     print("FPS for initial images: ", initialFPS)
@@ -453,9 +460,9 @@ def main():
 
         # Collecting Images from Camera
         t_start = time.time()
-        (newImages, newCorners, newFPS, newFirstImageXY) = getImages(camera, 
-                                                                     start = i, 
-                                                                     length = i+movingAverageIncrement, 
+        (newImages, newCorners, newFPS, newFirstImageXY) = getImages(camera,
+                                                                     start = i,
+                                                                     length = i+movingAverageIncrement,
                                                                      showImages = True)
         # Checking the FPS for the new images
         print("FPS for new images: ", newFPS)
@@ -465,10 +472,10 @@ def main():
 
         # appending newly collected items to original arrays
         images = initialImages + newImages
-        images = reduceToLastNIndices(images, frameTotal)
+        images = reduceToLastNIndices(images, frametotal)
 
         faceCorners = initialCorners + newCorners
-        faceCorners = reduceToLastNIndices(faceCorners, frameTotal)
+        faceCorners = reduceToLastNIndices(faceCorners, frametotal)
 
         # Getting BGR data from all images
 
@@ -483,7 +490,7 @@ def main():
         newCorners = None
         '''
 
-        
+
 
         if framenum >= 60: #frametotal:
             camera.close()
