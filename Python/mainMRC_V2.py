@@ -229,7 +229,7 @@ def reformatImages(images, resolution):
 
     # Testing whether cv2.GoodFeatureToTrack is better then cornerHarris method
     # firstImagePoints = cv2.cornerHarris(firstImageGray, 2, 3, 0.04)
-    firstImagePoints = cv2.goodFeaturesToTrack(firstImageGray,25,0.01,10)
+    firstImagePoints = cv2.goodFeaturesToTrack(firstImageGray,4,0.01,10)
     firstImagePoints = firstImagePoints.astype(np.float32)
 
     # printing a grayscale color number to make sure that the array is in np.float32 type.
@@ -284,7 +284,7 @@ def reformatImages(images, resolution):
 def main():
     # Variables:
     framenum   = 0
-    framerate  = 120
+    framerate  = 90
     frametotal = 60
     movingAverageIncrement = 10
     images = []
