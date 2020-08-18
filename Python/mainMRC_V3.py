@@ -236,11 +236,27 @@ def getBiggestDetectedFace(faces):
     '''
     faceAreas = np.array([])
     for (x, y, w, h) in faces:
-        faceAreas.append(w*h)
-    index = faceAreas.index(max(faceAreas))
+        faceAreas = np.append(faceAreas, np.array([w*h]))
+    indexOfMaxArea = np.where(faceAreas == max(faceAreas))
 
     # returning largest face, probably the true face incase of errors in face detection
-    return faces[index]
+    return faces[indexOfMaxArea]
+
+def getImagesFromImagesList(images):
+    '''
+    This function converts the images from capture_sequence
+    into actual BGR images, for capture_sequence does not do this on its own.
+
+    The list actualImages is this array of bgr images.
+    '''
+
+    actualImages = []
+    for image in range(len(images)):
+        actualImages.append(cv2.imread(images[image]))
+
+    print("testing whether the getImagesFromImagesList worked: ", type(actualImages[0]))
+
+    return actualImages
 
 def getImagesInformation(camera, length, start = 1, step = 1, showImages = False):
     '''
@@ -259,74 +275,93 @@ def getImagesInformation(camera, length, start = 1, step = 1, showImages = False
         images = []
         fps = 0
         for i in range(start, length + 1, step):
-            images.append('image%02d' % i)
+            images.append('image%02d.jpg' % i)
 
         print("Finished making the list of images")
+        print("Here is the list of images for debugging: ", images)
         print("now taking the pictures...")
 
         if showImages == False:
             t_start = time.time()
-            camera.capture_sequence(images, format = 'BGR')
+            camera.capture_sequence(images)
             t_capture = time.time()
         else:
             camera.start_preview()
             time.sleep(2)
             t_start = time.time()
-            camera.capture_sequence(images, format = 'BGR')
+            camera.capture_sequence(images)
             t_capture = time.time()
             camera.stop_preview()
 
         print("Finished taking the pictures")
+        print("Getting images from images list")
+        images = getImagesFromImagesList(images)
+
+        print("Finished getting images from images list. Now making the face detector...")
 
         # calculating frames per second for image capture
         fps = length/(t_capture - t_start)
 
         # checking that there is a face in each image before accepting the
         # list of images for heart rate detection
-        cascadePath = 'haarcascade_frontalface_default.xml'
+        cascadePath = "/home/pi/Desktop/SURGE-Project_MRC-algorithm-code/Python/haarcascade_frontalface_default.xml"
         faceDetector = cv2.CascadeClassifier(cascadePath)
         faceCorners = np.array([])
-        faces = np.zeros(len(images))
+        faces = np.array([])
         print("Finished making the face detector")
-        print("debugging: length of faces before initializing with faces: ", length(faces))
+        print("debugging: length of faces before initializing with faces: ", len(faces))
 
         # iterating through each index in the images array to detect a face in the image
         image = 0
 
         print("Starting the face detection")
-        while image < range(length(images)): # iterating through each index of the images array to detect faces
-            images[image] = cv2.imread(images[images]) # in BGR format, not RGB
+        while image < len(images): # iterating through each index of the images array to detect faces
+            # images[image] = cv2.imread(images[image]) # in BGR format, not RGB
+
+            # printing the image to debug
+            # fig = plt.figure()
+            # plt.imshow(images[image])
+            # plt.show()
+
+            # Getting and checking grayscale version of the image
+            print("Checking image shape before processing: ", images[image].shape)
 
             grayImage = cv2.cvtColor(images[image], cv2.COLOR_BGR2GRAY)
 
+            print("Checking gray image shape before processing: ", grayImage.shape)
+
             # Detecting faces
-            face = faceCascade.detectMultiScale(
+            facesDetected = faceDetector.detectMultiScale(
                 grayImage,
                 scaleFactor = 1.1,
                 minNeighbors = 5,
-                minSize = (30, 30)
-                #flags = cv2.CV_HAAR_SCALE_IMAGE
-                )
+                minSize = (30, 30))
+                # flags = cv2.CV_HAAR_SCALE_IMAGE)
 
+            print("This is the shape of faces: ", facesDetected.shape)
+            print("This is the shape of the face coordinates axis: ", facesDetected[1])
             # Testing whether there is a face in this frame. If not, then restart the image collection
-            if len(faces) == 0:
+            if len(facesDetected[0]) == 0:
                 faceInEachFrame = False
+                print("Whoops! One of the frames does not have a face. Starting over image collection")
                 break
 
-            faces.append(face)
+            # I don't think that this code is needed
+            # faces = np.append(faces, face)
 
             # Getting biggest face
-            for (x, y, w, h) in faces[image]: # notice that the format (x, y, w, h) is the bbox format
+            for (x, y, w, h) in facesDetected[1]: # notice that the format (x, y, w, h) is the bbox format
                 cv2.rectangle(images[image], (x, y), (x+w, y+h), (0, 255, 0), 2)
             cv2.imshow("detect face(s)", images[image])
-            cv2.waitKey(0)
+            # cv2.waitKey(0)
 
-            biggestFace = getBiggestDetectedFace(faces[image])
+            biggestFace = getBiggestDetectedFace(facesDetected)
             [minX, maxX, minY, maxY] = getMaxAndMinXAndY(biggestFace)
             if image == 0:
                 firstFaceXY = (minX, maxX, minY, maxY)
             faceCorners[image] = np.array([[minX, minY], [minX, maxY], [maxX, minY], [maxX, maxY]])
             # images[image] = images[image][minX:maxX, minY:maxY]
+            print("Image number we are on: ", image)
 
     return (images, fps, faceCorners, firstfaceXY)
 
@@ -367,7 +402,7 @@ def reformatImages(images, faceCorners, firstFaceXY):
     (firstMinX, firstMaxX, firstMinY, firstMaxY) = firstFaceXY
 
     # iterating through each index in the images array
-    for image in range(start = 1, stop = length(images)):
+    for image in range(start = 1, stop = len(images)):
         # Converting the images into RGB np arrays from BGR np arrays,
         # assuming that the image outpout from camera.capture_sequence is not RGB
         newImagePoints = faceCorners[image]
@@ -382,7 +417,7 @@ def reformatImages(images, faceCorners, firstFaceXY):
     # Getting the final time for reformatting
     t_final = time.time()
 
-    timeElspased = length(images)/(t_finish - t_start)
+    timeElspased = len(images)/(t_finish - t_start)
 
     return (images, timeElapsed)
 
@@ -424,12 +459,12 @@ def main():
     # Variables:
     framenum   = 0
     framerate  = 90
-    frametotal = 60
+    frametotal = 10
     movingAverageIncrement = 10
     images = []
-    r = np.zeros(60)
-    g = np.zeros(60)
-    b = np.zeros(60)
+    r = np.zeros(frametotal)
+    g = np.zeros(frametotal)
+    b = np.zeros(frametotal)
 
     # Iterators
     i = 0
@@ -446,7 +481,7 @@ def main():
     # getting initial images, corners, fps, and firstfaceXY
     (initialImages, initialCorners, initialFPS, initialFirstImageXY) = getImagesInformation(camera,
                                                                                             length = frametotal,
-                                                                                            showImages = True)
+                                                                                            showImages = False)
     # checking the FPS for the Initial Images
     print("FPS for initial images: ", initialFPS)
 
@@ -463,7 +498,7 @@ def main():
         (newImages, newCorners, newFPS, newFirstImageXY) = getImages(camera,
                                                                      start = i,
                                                                      length = i+movingAverageIncrement,
-                                                                     showImages = True)
+                                                                     showImages = False)
         # Checking the FPS for the new images
         print("FPS for new images: ", newFPS)
 
