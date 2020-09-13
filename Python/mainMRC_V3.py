@@ -514,23 +514,6 @@ def getRGBFromImages(images):
 
     return(r, g, b)
 
-def captureVideoToImages(camera, frametotal, framerate):
-    cwd = os.getcwd()
-    videoFileName = 'video.bgra'
-    videoDirectory = cwd + videoFileName
-    timeToCaptureVideo = frametotal/framerate
-    print("Starting video capture")
-    camera.start_recording(videoDirectory, format = 'bgra')
-    print("finished video capture")
-    camera.wait_recording(timeToCaptureVideo)
-    camera.stop_recording
-
-    cap = cv2.VideoCapture(video)
-
-    # checking to make sure that all of the frames were captured
-    success = True
-
-
 def main():
     # Variables:
     framenum   = 0

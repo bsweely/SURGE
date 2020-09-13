@@ -347,4 +347,308 @@ def getImagesInformation(camera, framerate, length, start = 1, step = 1, showIma
             # Getting and checking grayscale version of the image
             print("Checking image shape before processing: ", images[image].shape)
 
-            grayImag
+            grayImage = cv2.cvtColor(images[image], cv2.COLOR_BGR2GRAY)
+
+            print("Checking gray image shape before processing: ", grayImage.shape)
+
+            # Detecting facces
+            facesDetected = faceDetector.detectMultiScale(
+                grayImage,
+                scaleFactor = 1.1,
+                minNeighbors = 5)
+                # minSize = (30, 30)
+                # flags = cv2.CV_HAAR_SCALE_IMAGE)
+
+            print("This is facesDetected object printed out: ", facesDetected)
+            print("This is the type of faces: ", type(faces))
+
+            # print("This is the shape of the face coordinates axis: ", facesDetected[1])
+            # Testing whether there is a face in this frame. If not, then restart the image collection
+            if len(facesDetected) == 0:
+                faceInEachFrame = False
+                print("Whoops! One of the frames does not have a face. Starting over image collection")
+                break
+
+            # I don't think that this code is needed
+            # faces = np.append(faces, face)
+
+            print("This is faces detected: ", facesDetected)
+            print("This is faces detected, position 0: ", facesDetected[0])
+
+            # Getting biggest face
+            numOfFaces = len(facesDetected)
+            for values in np.arange(numOfFaces): # notice that the format (x, y, w, h) is the bbox format
+                # when I use the "in" keyword, the numpy array is not iterated through correctly
+                # in this loop
+                x = facesDetected[values][0]
+                y = facesDetected[values][1]
+                w = facesDetected[values][2]
+                h = facesDetected[values][3]
+                print("Current bbox being printed: ", facesDetected[values])
+
+
+                cv2.rectangle(images[image], (x, y), (x+w, y+h), (0, 255, 0), 2)
+            cv2.imshow("detect face(s)", images[image])
+            # cv2.waitKey(0)
+
+            biggestFace = getBiggestDetectedFace(facesDetected)
+            [minX, maxX, minY, maxY] = getMaxAndMinXAndY(biggestFace)
+            if image == 0:
+                firstFaceXY = (minX, maxX, minY, maxY)
+            faceCorners = np.append(faceCorners, (np.array([[minX, minY], [minX, maxY], [maxX, minY], [maxX, maxY]])))
+            print("printing faceCorners in the getImagesInformationFunction before transformation: ", faceCorners)
+            # images[image] = images[image][minX:maxX, minY:maxY]
+
+            # reshaping faceCorners to have separate faceCorners instead
+            # of having all of them in one dimension.
+            numValuesInFaceCoords = len(faceCorners)
+            NUM_OF_COORDS_INSTANCES = numValuesInFaceCoords/8 # each face has 4
+            NUM_OF_COORDS_INSTANCES = int(NUM_OF_COORDS_INSTANCES)
+            print("number of face coordinates present: ", NUM_OF_COORDS_INSTANCES)
+            faceCorners = np.reshape(faceCorners, (NUM_OF_COORDS_INSTANCES, 4, 2))
+            print("printing faceCorners in the getImagesInformationFunction after transformation: ", faceCorners)
+            print("Image number we are on: ", image)
+            image = image + 1
+
+    return (images, fps, faceCorners, firstFaceXY)
+
+def reduceToLastNIndices(array, n):
+    length = len(array)
+    if n > length:
+        print('Error: The array is not as long as the number specified')
+        time.sleep(10)
+        return array
+    elif n == length:
+        print('Error: The array is exactly as long as the number specified. Returning original array')
+        time.sleep(10)
+        return array
+    else:
+        newArray = array[(length - n):length]
+        return newArray
+
+def reformatImages(images, faceCorners, firstFaceXY):
+    '''
+    Paramaters
+    ----------
+    images : list of images
+
+    Returns
+    -------
+    images : list of images that are transformed
+    according to the first image
+    '''
+
+    # collecting initial time for reformatting images
+    t_start = time.time()
+
+    # getting a grayscale image for the transform
+    firstImageGray = cv2.cvtColor(images[0], cv2.COLOR_BGR2GRAY)
+    firstImagePoints = np.float32(faceCorners[0])
+
+    # Getting X and Y values for first image's face for transformation
+    (firstMinX, firstMaxX, firstMinY, firstMaxY) = firstFaceXY
+
+    # iterating through each index in the images array
+    for image in np.arange(start = 1, stop = len(images)):
+        # Converting the images into RGB np arrays from BGR np arrays,
+        # assuming that the image outpout from camera.capture_sequence is not RGB
+        newImagePoints = np.float32(faceCorners[image])
+
+        # image must be in gray scale for corner detection
+        image2 = cv2.cvtColor(images[image], cv2.COLOR_BGR2GRAY)
+
+        transform = cv2.getPerspectiveTransform(newImagePoints, firstImagePoints)
+        images[image] = cv2.warpPerspective(images[image], transform, (images[image].shape[1], images[image].shape[0]), flags = cv2.INTER_LINEAR)
+        images[image] = images[image][firstMinX:firstMaxX, firstMinY:firstMaxY]
+
+    # Getting the final time for reformatting
+    t_final = time.time()
+
+    timeElapsed = len(images)/(t_final - t_start)
+
+    return (images, timeElapsed)
+
+def getRGBFromImages(images):
+
+    # Image Data
+    r = np.zeros(len(images))
+    g = np.zeros(len(images))
+    b = np.zeros(len(images))
+
+    for j in np.arange(len(images)):
+        # Find ROI and crop array
+
+        # Get RGB intensities
+        # In a BGR Numpy array, in the third axis, 0 is B, 1 is G, and 2 is R. 3 is Transparency
+
+        '''
+        print(j)
+        print('j is %02d' % j)
+        print(images[j])
+        print(images[j][1])
+        '''
+        r[j] = np.sum(images[j][:][:][2])
+        g[j] = np.sum(images[j][:][:][1])
+        b[j] = np.sum(images[j][:][:][0])
+
+    # Detrend RGB intensities
+    r_detrend = scipy.signal.detrend(r)
+    g_detrend = scipy.signal.detrend(g)
+    b_detrend = scipy.signal.detrend(b)
+
+    j = 0
+    rMean = r_detrend.mean(0)
+    bMean = b_detrend.mean(0)
+    gMean = g_detrend.mean(0)
+
+    rSTD = r_detrend.std(0)
+    bSTD = b_detrend.std(0)
+    gSTD = g_detrend.std(0)
+
+    for j in np.arange(len(images)):
+        # Normalize RGB intensities
+        # z = (x-mu)/sigma
+        r[j] = (r_detrend[j] - rMean) / rSTD
+        g[j] = (g_detrend[j] - gMean) / gSTD
+        b[j] = (b_detrend[j] - bMean) / bSTD
+
+    return(r, g, b)
+
+def captureVideoToImages(camera, frametotal, framerate):
+    cwd = os.getcwd()
+    videoFileName = 'video.bgra'
+    videoDirectory = cwd + videoFileName
+    timeToCaptureVideo = frametotal/framerate
+    print("Starting video capture")
+    camera.start_recording(videoDirectory, format = 'bgra')
+    print("finished video capture")
+    camera.wait_recording(timeToCaptureVideo)
+    camera.stop_recording
+
+    video = cv2.VideoCapture(videoDirectory)
+
+    # checking to make sure that all of the frames were captured
+    correctlyCapturedAFrame = True
+    imageNumber = 1
+    loopStop = False # To stop the loop if there is an error with collecting frames
+    while loopStop == False:
+        while correctlyCapturedAFrame == True:
+            correctlyCapturedAFrame, frame = video.read()
+            cv2.imwrite("frame%d.bgr" % imageNumber, frame)
+            if cv2.waitkey(10) == 27: # if someone hits the escape key
+                break
+            if correctlyCapturedAFrame == False:
+                loopStop == True
+                break
+            imageNumber += 1
+        
+        # stopping the loop if the frames were all correctly captured
+        loopStop = True
+    os.listdir(videoDirectory)
+    
+    
+
+
+def main():
+    # Variables:
+    framenum   = 0
+    framerate  = 90
+    frametotal = 5
+    movingAverageIncrement = 10
+    images = []
+    r = np.zeros(frametotal)
+    g = np.zeros(frametotal)
+    b = np.zeros(frametotal)
+
+    # Iterators
+    i = 0
+    j = 0
+    k = 0
+
+    # Connect to camera
+    camera = picamera.PiCamera()
+    resolution = (640, 480)
+    camera.resolution = resolution
+    # camera.brightness = 100 # This brightness level renders the images as white boxes on the screen because the image is so bright
+    camera.framerate = framerate
+
+    # getting initial images, corners, fps, and firstfaceXY
+    (initialImages, initialFPS, initialCorners, initialFirstImageXY) = getImagesInformation(camera,
+                                                                                            framerate,
+                                                                                            length = frametotal,
+                                                                                            showImages = True)
+    # checking the FPS for the Initial Images
+    print("FPS for initial images: ", initialFPS)
+    # print("face corners for initial images: ", initialCorners)
+    # print("elment one and its type of initialCorners: ", initialCorners[0], type(initialCorners[0]))
+
+    # Transforming Images
+    (initialImages, timeElapsed) = reformatImages(initialImages, initialCorners, initialFirstImageXY)
+
+    # Checking the time elapsed for reformatting the initial images
+    # print("Time elapsed for the initial images: ", timeElapsed)
+
+    while 1:
+
+        # Collecting Images from Camera
+        t_start = time.time()
+        (newImages, newFPS, newCorners, newFirstImageXY) = getImagesInformation(camera,
+                                                                                framerate,
+                                                                                length = i+movingAverageIncrement,
+                                                                                start = i,
+                                                                                showImages = False)
+        # Checking the FPS for the new images
+        print("FPS for new images: ", newFPS)
+
+        # Transforming Images
+        (newImages, timeElapsed) = reformatImages(newImages, newCorners, newFirstImageXY)
+
+        # appending newly collected items to original arrays
+        images = initialImages + newImages
+        images = reduceToLastNIndices(images, frametotal)
+
+        faceCorners = np.append(initialCorners, newCorners)
+        faceCorners = reduceToLastNIndices(faceCorners, frametotal)
+
+        # Getting BGR data from all images
+
+        (r_norm, g_norm, b_norm) = getRGBFromImages(images)
+
+        '''
+        # Deallocating unnecesssary image data
+        # I might not have to code this in
+        initialImages = None
+        newImages = None
+        initialCorners = None
+        newCorners = None
+        '''
+
+
+
+        if framenum >= 60: #frametotal:
+            camera.close()
+            t_finish = time.time()
+            t_total = t_finish-t_start
+            print("time to run : %.3f" % (t_total), "(s)")
+            #print()
+            #print(r_norm)
+            #print()
+            #print(g_norm)
+            break
+
+
+    ### TESTING ###  ### TESTING ###
+
+    ### TESTING ###  ### TESTING ###
+
+### Functions ###
+
+def GetImage(images, i, framenum, rawCapture):
+    print("yes")
+    for i in range(i, i+movingAverageIncrement):
+        images.append(rawCapture.array)
+        time.sleep(1/60)
+        framenum += 1
+
+if __name__ == "__main__":
+    main()
