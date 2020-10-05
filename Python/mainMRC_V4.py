@@ -10,6 +10,8 @@ import imageio
 import cv2
 import matplotlib.pyplot as plt
 import os
+import shutil
+import ffmpy
 
 '''
 Herein are the classes and functions that we need to execute the MRC algorithm.
@@ -60,96 +62,6 @@ class FrameArray():
     fps = 0
     faceCorners = np.array([])
     firstFaceXY = np.array([])
-
-    def __init__(self, camera, length, start = 1, step = 1, showImages = False):
-
-        '''
-        This function captures the images for each increment in the moving window of heart rates,
-        with the option of showing the images or not.
-
-        This is not finished yet.
-        '''
-
-        # Looping to collect a set of images until a face is detected in each frame
-        # If there is a missing face in the current image, then there is a new image capture taken.
-        # If there is at least one face in each frame, then this function completes. If one frame has no detected faces,
-        # the the function continues and faceInEachFrame = false, thus repeating the loop and collecting new images
-        faceInEachFrame = False
-
-        while faceInEachFrame == False:
-            faceInEachFrame = True
-            images = []
-            fps = 0
-            for i in range(start, length + 1, step):
-                images.append('image%02d' % i)
-
-            if showImages == False:
-                t_start = time.time()
-                camera.capture_sequence(images, format = 'BGR')
-                t_capture = time.time()
-            else:
-                camera.start_preview()
-                time.sleep(2)
-                t_start = time.time()
-                camera.capture_sequence(images, format = 'BGR')
-                t_capture = time.time()
-                camera.stop_preview()
-
-            # calculating frames per second for image capture
-            fps = length/(t_capture - t_start)
-
-            # checking that there is a face in each image before accepting the
-            # list of images for heart rate detection
-            cascadePath = 'haarcascade_frontalface_default.xml'
-            faceDetector = cv2.CascadeClassifier(cascadePath)
-            faceCorners = np.array([])
-            faces = np.zeros(len(images))
-            # print("debugging: length of faces before initializing with faces: ", length(faces))
-
-            # iterating through each index in the images array to detect a face in the image
-            image = 0
-
-            while image < range(length(images)): # iterating through each index of the images array to detect faces
-                images[image] = cv2.imread(images[images]) # in BGR format, not RGB
-
-                grayImage = cv2.cvtColor(images[image], cv2.COLOR_BGR2GRAY)
-
-                # Detecting faces
-                face = faceCascade.detectMultiScale(
-                    grayImage,
-                    scaleFactor = 1.1,
-                    minNeighbors = 5,
-                    minSize = (30, 30)
-                    #flags = cv2.CV_HAAR_SCALE_IMAGE
-                    )
-
-                # Testing whether there is a face in this frame. If not, then restart the image collection
-                if len(faces) == 0:
-                    faceInEachFrame = False
-                    break
-
-                faces.append(face)
-
-                # Getting biggest face
-                for (x, y, w, h) in faces[image]: # notice that the format (x, y, w, h) is the bbox format
-                    cv2.rectangle(images[image], (x, y), (x+w, y+h), (0, 255, 0), 2)
-                cv2.imshow("detect face(s)", images[image])
-                cv2.waitKey(0)
-
-                biggestFace = getBiggestDetectedFace(faces[image])
-                [minX, maxX, minY, maxY] = getMaxAndMinXAndY(biggestFace)
-                if image == 0:
-                    firstFaceXY = (minX, maxX, minY, maxY)
-                faceCorners[image] = np.array([[minX, minY], [minX, maxY], [maxX, minY], [maxX, maxY]])
-                # images[image] = images[image][minX:maxX, minY:maxY]
-
-        self.framesList = images
-        self.fps = fps
-        self.faceCorners = faceCorners
-        self.firstFaceXY = firstFaceXY
-
-
-
 
 class Frame():
     '''
@@ -212,7 +124,7 @@ def getMaxAndMinXAndY(bbox):
         [minX, maxX, minY, maxY]
 
     '''
-    print("This is the bbox to be transformed: ", bbox)
+    # print("This is the bbox to be transformed: ", bbox)
     [x, y, w, h] = bbox
 
     return np.array([x, x+w, y, y+h])
@@ -262,155 +174,6 @@ def getBiggestDetectedFace(faces):
     # biggestFace = faces[indexOfMaxArea]
     # print("Size of biggest face: ", biggestFace.shape)
     return biggestFace
-
-def getImagesFromImagesList(images):
-    '''
-    This function converts the images from capture_sequence
-    into actual BGR images, for capture_sequence does not do this on its own.
-
-    The list actualImages is this array of bgr images.
-    '''
-
-    actualImages = []
-    for image in range(len(images)):
-        actualImages.append(cv2.imread(images[image]))
-
-    # print("testing whether the getImagesFromImagesList worked: ", type(actualImages[0]))
-
-    return actualImages
-
-def getImagesInformation(camera, framerate, length, start = 1, step = 1, showImages = False):
-    '''
-    This function captures the images for each increment in the moving window of heart rates,
-    with the option of showing the images or not
-    '''
-
-    # Looping to collect a set of images until a face is detected in each frame
-    # If there is a missing face in the current image, then there is a new image capture taken.
-    # If there is at least one face in each frame, then this function completes. If one frame has no detected faces,
-    # the the function continues and faceInEachFrame = false, thus repeating the loop and collecting new images
-    faceInEachFrame = False
-
-    while faceInEachFrame == False:
-        faceInEachFrame = True
-        images = []
-        fps = 0
-        for i in range(start, length + 1, step):
-            images.append('image%02d.jpg' % i)
-
-        # print("Finished making the list of images")
-        # print("Here is the list of images for debugging: ", images)
-        # print("now taking the pictures...")
-
-        if showImages == False:
-            t_start = time.time()
-            camera.capture_sequence(images)
-            t_capture = time.time()
-        else:
-            camera.start_preview()
-            time.sleep(2)
-            t_start = time.time()
-            camera.capture_sequence(images)
-            t_capture = time.time()
-            camera.stop_preview()
-
-        # print("Finished taking the pictures")
-        # print("Getting images from images list")
-        images = getImagesFromImagesList(images)
-
-        print("Finished getting images from images list. Now making the face detector...")
-
-        # calculating frames per second for image capture
-        fps = length/(t_capture - t_start)
-
-        # checking that there is a face in each image before accepting the
-        # list of images for heart rate detection
-        cascadePath = "/home/pi/Desktop/SURGE-Project_MRC-algorithm-code/Python/haarcascade_frontalface_default.xml"
-        faceDetector = cv2.CascadeClassifier(cascadePath)
-        faceCorners = np.array([])
-        faces = np.array([])
-        print("Finished making the face detector")
-        print("debugging: length of faces before initializing with faces: ", len(faces))
-
-        # iterating through each index in the images array to detect a face in the image
-        image = 0
-
-        print("Starting the face detection")
-        while image < len(images): # iterating through each index of the images array to detect faces
-            # images[image] = cv2.imread(images[image]) # in BGR format, not RGB
-
-            # printing the image to debug
-            # fig = plt.figure()
-            # plt.imshow(images[image])
-            # plt.show()
-
-            # Getting and checking grayscale version of the image
-            print("Checking image shape before processing: ", images[image].shape)
-
-            grayImage = cv2.cvtColor(images[image], cv2.COLOR_BGR2GRAY)
-
-            print("Checking gray image shape before processing: ", grayImage.shape)
-
-            # Detecting facces
-            facesDetected = faceDetector.detectMultiScale(
-                grayImage,
-                scaleFactor = 1.1,
-                minNeighbors = 5)
-                # minSize = (30, 30)
-                # flags = cv2.CV_HAAR_SCALE_IMAGE)
-
-            print("This is facesDetected object printed out: ", facesDetected)
-            print("This is the type of faces: ", type(faces))
-
-            # print("This is the shape of the face coordinates axis: ", facesDetected[1])
-            # Testing whether there is a face in this frame. If not, then restart the image collection
-            if len(facesDetected) == 0:
-                faceInEachFrame = False
-                print("Whoops! One of the frames does not have a face. Starting over image collection")
-                break
-
-            # I don't think that this code is needed
-            # faces = np.append(faces, face)
-
-            print("This is faces detected: ", facesDetected)
-            print("This is faces detected, position 0: ", facesDetected[0])
-
-            # Getting biggest face
-            numOfFaces = len(facesDetected)
-            for values in np.arange(numOfFaces): # notice that the format (x, y, w, h) is the bbox format
-                # when I use the "in" keyword, the numpy array is not iterated through correctly
-                # in this loop
-                x = facesDetected[values][0]
-                y = facesDetected[values][1]
-                w = facesDetected[values][2]
-                h = facesDetected[values][3]
-                print("Current bbox being printed: ", facesDetected[values])
-
-
-                cv2.rectangle(images[image], (x, y), (x+w, y+h), (0, 255, 0), 2)
-            cv2.imshow("detect face(s)", images[image])
-            # cv2.waitKey(0)
-
-            biggestFace = getBiggestDetectedFace(facesDetected)
-            [minX, maxX, minY, maxY] = getMaxAndMinXAndY(biggestFace)
-            if image == 0:
-                firstFaceXY = (minX, maxX, minY, maxY)
-            faceCorners = np.append(faceCorners, (np.array([[minX, minY], [minX, maxY], [maxX, minY], [maxX, maxY]])))
-            print("printing faceCorners in the getImagesInformationFunction before transformation: ", faceCorners)
-            # images[image] = images[image][minX:maxX, minY:maxY]
-
-            # reshaping faceCorners to have separate faceCorners instead
-            # of having all of them in one dimension.
-            numValuesInFaceCoords = len(faceCorners)
-            NUM_OF_COORDS_INSTANCES = numValuesInFaceCoords/8 # each face has 4
-            NUM_OF_COORDS_INSTANCES = int(NUM_OF_COORDS_INSTANCES)
-            print("number of face coordinates present: ", NUM_OF_COORDS_INSTANCES)
-            faceCorners = np.reshape(faceCorners, (NUM_OF_COORDS_INSTANCES, 4, 2))
-            print("printing faceCorners in the getImagesInformationFunction after transformation: ", faceCorners)
-            print("Image number we are on: ", image)
-            image = image + 1
-
-    return (images, fps, faceCorners, firstFaceXY)
 
 def reduceToLastNIndices(array, n):
     length = len(array)
@@ -515,45 +278,222 @@ def getRGBFromImages(images):
     return(r, g, b)
 
 def captureVideoToImages(camera, frametotal, framerate):
-    cwd = os.getcwd()
-    videoFileName = 'video.bgra'
-    videoDirectory = cwd + videoFileName
-    timeToCaptureVideo = frametotal/framerate
-    print("Starting video capture")
-    camera.start_recording(videoDirectory, format = 'bgra')
-    print("finished video capture")
-    camera.wait_recording(timeToCaptureVideo)
-    camera.stop_recording
+    # constants
 
-    video = cv2.VideoCapture(videoDirectory)
+    # This constant is to add more seconds to the
+    # video capture so that enough time is allotted
+    # to collect the number of frames specified in frametotal
+    TIME_TO_ACCOUNT_FOR_ERROR = 0.5;
 
-    # checking to make sure that all of the frames were captured
-    correctlyCapturedAFrame = True
-    imageNumber = 1
-    loopStop = False # To stop the loop if there is an error with collecting frames
-    while loopStop == False:
+    # Making directories for the video
+    muDirectory = '/home/pi/mu_code'
+    videoFilesPath =  muDirectory + '/video_files_MRC_v4'
+    print("This is the videoFilesPath: ", videoFilesPath)
+    print("This is the current working directory: ", os.getcwd())
+
+    # making the face detector to make sure
+    # that there is a face in each frame before proceeding
+    # to extract more frames in the video
+    cascadePath = "/home/pi/Desktop/SURGE-Project/Python/haarcascade_frontalface_default.xml"
+    faceDetector = cv2.CascadeClassifier(cascadePath)
+    faceCorners = np.array([])
+    faces = np.array([])
+    print("Finished making the face detector")
+    print("debugging: length of faces before initializing with faces: ", len(faces))
+
+
+    # making variable that will determing whether we stop getting new videos or not
+    videoIsProcessedSuccessfully = False
+
+    while videoIsProcessedSuccessfully == False:
+        # notes
+        '''
+        If the variable videoIsProcessedSuccessfully == False, then this loop
+        will loop until the video is processed successfully, or when the video
+        can produce all of its frames correctly.
+
+        See if I can initialize camera with a wait time (try camera.open
+        or camera.read) for real time capture. Captures one frame at a time.
+        Instantaneous.
+
+        Look into avi video format potentially (it is in RGB format).For both real time and offline analysis.
+        '''
+
+        # Making directories for files
+        try:
+            os.mkdir(videoFilesPath)
+        except:
+            print("The videoFilesPath already exists here.")
+            print("making new videoFilesPath.")
+            shutil.rmtree(videoFilesPath)
+            os.mkdir(videoFilesPath)
+
+        os.chdir(videoFilesPath)
+
+        # making folder for frames
+        framesFolderPath = videoFilesPath + '/frames'
+        os.mkdir(framesFolderPath)
+
+        # making video file
+        videoFileName = 'video.h264'
+        videoFileName2 = 'video.mp4'
+        videoDirectory = videoFilesPath + '/' + videoFileName
+        videoDirectory2 = videoFilesPath + '/' + videoFileName2
+        timeToCaptureVideo = frametotal/framerate + TIME_TO_ACCOUNT_FOR_ERROR
+
+        print("Time to record video for this iteration: ", timeToCaptureVideo)
+        time.sleep(2)
+
+        # Capturing Video
+        print("Starting video capture")
+        camera.start_recording(videoDirectory, format = 'h264')
+        tic = time.time()
+        print("finished video capture")
+        camera.wait_recording(timeToCaptureVideo)
+        toc = time.time()
+        camera.stop_recording()
+        timeCapture = toc - tic
+        print("Time to capture video is: ", timeCapture)
+
+        # The Pi is having trouble taking video with mp4
+        # So, here, we convert it to mp4 with ffmpeg
+        ff = ffmpy.FFmpeg(inputs={videoFileName: None}, outputs={videoFileName2: None})
+        ff.run()
+
+        # construct the video object'=
+        print("Printing videoDirectory string: ")
+        print(videoDirectory2)
+        video = cv2.VideoCapture(videoDirectory2)
+        frames = np.array([])
+
+        # checking to make sure that all of the frames were captured
+        imageNumber = 1
+
+        # Assuming that all frames in a video are present
+        correctlyCapturedAFrame = True
+        videoIsProcessedSuccessfully = True
+
+        # Making sure that all frames are present in the video that was captured
         while correctlyCapturedAFrame == True:
+            if imageNumber == frametotal + 1:
+                # break from the loop, for all
+                # desired images are collected
+                break
+
+            print("Frame: ", imageNumber)
             correctlyCapturedAFrame, frame = video.read()
-            cv2.imwrite("frame%d.bgr" % imageNumber, frame)
-            if cv2.waitkey(10) == 27: # if someone hits the escape key
-                break
             if correctlyCapturedAFrame == False:
-                loopStop == True
+
+                # There is a frame error - a frame that is not correctly
+                # captured from video.read()
+                print("\nThere was a frame that was not extracted correctly.")
+                print("Frame not extracted correctly: ", imageNumber)
+                print("Now capturing a new video and deleting old video files.\n")
+
+                # change to the original directory
+                os.chdir(muDirectory)
+
+                # delete file with both video and image files in it
+                shutil.rmtree(videoFilesPath)
+                videoIsProcessedSuccessfully = False
+
+                # Restarting loop
+                continue
+            else:
+                # If there is a frame correctly captured from the video files
+
+                # Making sure that there is a face in each image
+                # Before proceeding to extract more images
+                            # Getting and checking grayscale version of the image
+                # print("Checking image shape before processing: ", frame.shape)
+
+                grayImage = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+
+                # print("Checking gray image shape before processing: ", grayImage.shape)
+
+                # Detecting facces
+                facesDetected = faceDetector.detectMultiScale(
+                    grayImage,
+                    scaleFactor = 1.1,
+                    minNeighbors = 5,
+                    minSize = (30, 30))
+                    # flags = cv2.CV_HAAR_SCALE_IMAGE)
+
+                # If a frame does not have any detected faces
+                if len(facesDetected) == 0:
+                    print("Frame number", imageNumber,"does not have a face in it. Resetting video and images now")
+                    correctlyCapturedAFrame = False
+
+                    # Restarting loop
+                    continue
+                # Getting biggest face
+                numOfFaces = len(facesDetected)
+                for values in np.arange(numOfFaces): # notice that the format (x, y, w, h) is the bbox format
+                    # when I use the "in" keyword, the numpy array is not iterated through correctly
+                    # in this loop
+                    x = facesDetected[values][0]
+                    y = facesDetected[values][1]
+                    w = facesDetected[values][2]
+                    h = facesDetected[values][3]
+                    # print("Current bbox being printed: ", facesDetected[values])
+
+
+                    cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 255, 0), 2)
+                cv2.imshow("detect face(s)", frame)
+                # cv2.waitKey(0)
+
+                biggestFace = getBiggestDetectedFace(facesDetected)
+                [minX, maxX, minY, maxY] = getMaxAndMinXAndY(biggestFace)
+                if imageNumber == 1:
+                    firstFaceXY = (minX, maxX, minY, maxY)
+                faceCorners = np.append(faceCorners, (np.array([[minX, minY], [minX, maxY], [maxX, minY], [maxX, maxY]])))
+                # print("printing faceCorners in the getImagesInformationFunction before transformation: ", faceCorners)
+                # frame = frame[minX:maxX, minY:maxY]
+
+                # reshaping faceCorners to have separate faceCorners instead
+                # of having all of them in one dimension.
+                numValuesInFaceCoords = len(faceCorners)
+                NUM_OF_COORDS_INSTANCES = numValuesInFaceCoords/8 # each face has 4
+                NUM_OF_COORDS_INSTANCES = int(NUM_OF_COORDS_INSTANCES)
+                # print("number of face coordinates present: ", NUM_OF_COORDS_INSTANCES)
+                faceCorners = np.reshape(faceCorners, (NUM_OF_COORDS_INSTANCES, 4, 2))
+                # print("printing faceCorners in the getImagesInformationFunction after transformation: ", faceCorners)
+                # print("Image number we are on: ", imageNumber)
+                cv2.imwrite("frame%d.jpg" % imageNumber, frame)
+
+            # Now, the cv2.waitkey() function is not working
+            '''
+            if cv2.waitkey(10) == 27: # if someone hits the escape key
+                print("The escape key was hit, so this video and its files will stop being processed")
                 break
+            '''
+
             imageNumber += 1
-        
-        # stopping the loop if the frames were all correctly captured
-        loopStop = True
-    os.listdir(videoDirectory)
-    
-    
+
+        # Releasing the video reader and all headers
+        video.release()
+        cv2.destroyAllWindows()
+
+        if videoIsProcessedSuccessfully == True:
+            # making list of image files
+            frames = os.listdir(videoFilesPath)
+            print("Type of object in frames list: ", type(frames[0]))
+            print("printing the frames directory, sorted: ", np.sort(frames))
+            break
+
+        # If videoIsProcessedSuccessfully == False, then the loop will loop again
+    frames = getImagesFromImagesList(frames)
+
+    return (frames, fps, corners, firstImageXY, timeToCaptureVideo)
+
+
 
 
 def main():
     # Variables:
     framenum   = 0
-    framerate  = 90
-    frametotal = 5
+    framerate  = 60 # Changing the framerate (as an experiment) did not change fps
+    frametotal = 600
     movingAverageIncrement = 10
     images = []
     r = np.zeros(frametotal)
@@ -573,10 +513,7 @@ def main():
     camera.framerate = framerate
 
     # getting initial images, corners, fps, and firstfaceXY
-    (initialImages, initialFPS, initialCorners, initialFirstImageXY) = getImagesInformation(camera,
-                                                                                            framerate,
-                                                                                            length = frametotal,
-                                                                                            showImages = True)
+    (initialImages, initialFps, initialCorners, initialFirstImageXY, timeElapsed) = captureVideoToImages(camera, frametotal, framerate)
     # checking the FPS for the Initial Images
     print("FPS for initial images: ", initialFPS)
     # print("face corners for initial images: ", initialCorners)
@@ -592,17 +529,17 @@ def main():
 
         # Collecting Images from Camera
         t_start = time.time()
-        (newImages, newFPS, newCorners, newFirstImageXY) = getImagesInformation(camera,
-                                                                                framerate,
-                                                                                length = i+movingAverageIncrement,
-                                                                                start = i,
-                                                                                showImages = False)
+        (newImages, newFps, newCorners, newFirstImageXY, newTimeElapsed) = getImagesInformation(camera,
+                                                                                frametotal,
+                                                                                framerate)
         # Checking the FPS for the new images
         print("FPS for new images: ", newFPS)
 
         # Transforming Images
-        (newImages, timeElapsed) = reformatImages(newImages, newCorners, newFirstImageXY)
+        (newImages, newTimeElapsed) = reformatImages(newImages, newCorners, newFirstImageXY)
 
+        print("code beyond this point should not work")
+        quit
         # appending newly collected items to original arrays
         images = initialImages + newImages
         images = reduceToLastNIndices(images, frametotal)
