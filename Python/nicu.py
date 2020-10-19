@@ -22,7 +22,7 @@ FBOX_COLOR = (255, 0, 0) #blue
 sliding_window_size = 7
 global it
 it = 0
-global length,loop 
+global length,loop
 loop = 2
 length = 20
 global r,b,g
@@ -54,7 +54,7 @@ def show_faces(img, boxes, landmarks):
         cv2.rectangle(img, (x1, y1), (x2, y2), BBOX_COLOR, 2)
         for j in range(5):
             cv2.circle(img, (int(ll[j]), int(ll[j+5])), 2, BBOX_COLOR, 2)
-        
+
         #using face coordinates, detect cheek and forehead region
         l_eye = (ll[0], ll[5])
         r_eye = (ll[1], ll[6])
@@ -69,14 +69,14 @@ def show_faces(img, boxes, landmarks):
         r_cheek = (np.average([r_eye[0], r_lip[0]]), np.average([r_eye[1], r_lip[1]])) #right cheek center coordinates
         forehead = (np.average([l_eye[0], r_eye[0]]), np.average([l_eye[1], r_eye[1]]) - A) #forehead center coordinates
 
-        #determine if side of face is showing 
+        #determine if side of face is showing
         if nose[0] > np.average([l_eye[0], l_lip[0]]):
             cv2.rectangle(img, (int(l_cheek[0] - A/2), int(l_cheek[1] - A/2)), (int(l_cheek[0] + A/2), int(l_cheek[1] + A/2)), CBOX_COLOR, 2)
             roi[0] = np.array([int(l_cheek[0] - A/2), int(l_cheek[1] - A/2), int(l_cheek[0] + A/2), int(l_cheek[1] + A/2)])
         if nose[0] < np.average([r_eye[0], r_lip[0]]):
             cv2.rectangle(img, (int(r_cheek[0] - A/2), int(r_cheek[1] - A/2)), (int(r_cheek[0] + A/2), int(r_cheek[1] + A/2)), CBOX_COLOR, 2)
             roi[1] = np.array([int(r_cheek[0] - A/2), int(r_cheek[1] - A/2), int(r_cheek[0] + A/2), int(r_cheek[1] + A/2)])
-        if nose[0] > np.average([l_eye[0], l_lip[0]]) and nose[0] < np.average([r_eye[0], r_lip[0]]):    
+        if nose[0] > np.average([l_eye[0], l_lip[0]]) and nose[0] < np.average([r_eye[0], r_lip[0]]):
             cv2.rectangle(img, (int(forehead[0] - A/2), int(forehead[1] - A/2)), (int(forehead[0] + A/2), int(forehead[1] + A/2)), FBOX_COLOR, 2)
             roi[2] = np.array([int(forehead[0] - A/2), int(forehead[1] - A/2), int(forehead[0] + A/2), int(forehead[1] + A/2)])
 
@@ -120,7 +120,7 @@ def loop_and_detect(cam, mtcnn, minsize):
                 avgr = np.mean(r_roi, axis=0)
                 avgf = np.mean(f_roi, axis=0)
                 avg = sum([avgl,avgr,avgf])
-                
+
                 #insert averages into respective rgb array
                 r[it][frame] = avg[0]
                 g[it][frame] = avg[1]
@@ -132,7 +132,7 @@ def loop_and_detect(cam, mtcnn, minsize):
                 print('green:' + str(avg[1]))
                 print('blue:' + str(avg[2]))
 
-            
+
             frame += 1
 
             cv2.imshow(WINDOW_NAME, img)
@@ -175,7 +175,7 @@ def main():
             rr = np.concatenate(r[it-9:it]) # always uses the 200 most recent frames
             gg = np.concatenate(g[it-9:it])
             bb = np.concatenate(b[it-9:it])
-            
+
 
             #for i in range(0, length):
             #    if i < sliding_window_size:
@@ -229,7 +229,7 @@ def main():
             print('Average HR is: ', HR[it-9])
 
         it += 1
-    cam.stop() 
+    cam.stop()
     cam.release()
     cv2.destroyAllWindows()
 

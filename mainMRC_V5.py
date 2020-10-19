@@ -1,3 +1,4 @@
+import argparse
 from io import BytesIO
 import time
 import numpy as np
@@ -12,6 +13,7 @@ import matplotlib.pyplot as plt
 import os
 import shutil
 import ffmpy
+import subprocess
 
 '''
 Herein are the classes and functions that we need to execute the MRC algorithm.
@@ -83,6 +85,21 @@ class PixelArea():
     rIntensity = 0
     bIntensity = 0
     gIntensity = 0
+
+class FFMPEGFrames:
+    # this class depends on the modules os and subprocess
+    def __init__(self, output):
+        self.output = output
+
+    def extract_frames(self, input, fps):
+        output = input.split('/')[-1].split('.')[0]
+
+        if not os.path.exists(self.output + output):
+            os.makedirs(self.output + output)
+
+        query = "ffmpeg -i " + input + " -framerate fps=" + str(fps) + " " + self.output + output + "/output%06d.png"
+        response = subprocess.Popen(query, shell=True, stdout=subprocess.PIPE).stdout.read()
+        s = str(response).encode('utf-8')
 
 def get20x20PixelRegions(image, minX, maxX, minY, maxY):
     '''
@@ -303,7 +320,7 @@ def captureVideoToImages(camera, frametotal, framerate):
     # This constant is to add more seconds to the
     # video capture so that enough time is allotted
     # to collect the number of frames specified in frametotal
-    TIME_TO_ACCOUNT_FOR_ERROR = 0.3;
+    TIME_TO_ACCOUNT_FOR_ERROR = 10/framerate;
 
     # Making directories for the video
     muDirectory = '/home/pi/mu_code'
@@ -379,6 +396,12 @@ def captureVideoToImages(camera, frametotal, framerate):
         # So, here, we convert it to mp4 with ffmpeg
         ff = ffmpy.FFmpeg(inputs={videoFileName: None}, outputs={mpegVideoFileName: None})
         ff.run()
+
+        # Here, we are extracting frames with FFmpeg
+        f = FFMPEGFrames(framesFolderPath + "/")
+        f.extract_frames(videoDirectory2, framerate)
+        print("Sleeping for 20 seconds")
+        time.sleep(20)
 
         # construct the video object'=
         print("Printing videoDirectory string: ")
@@ -527,7 +550,7 @@ def main():
     # Variables:
     framenum   = 0
     framerate  = 60 # Changing the framerate (as an experiment) did not change fps
-    frametotal = 120
+    frametotal = framerate*30
     movingAverageIncrement = 10
     images = []
     r = np.zeros(frametotal)
